@@ -1,0 +1,2389 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>モダンデータスタック実践ガイド｜dbt × Iceberg × Trino × MinIO</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/yaml.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/sql.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/python.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/bash.min.js"></script>
+<style>
+  /* ─── Reset & Base ────────────────────────────────────── */
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f0f4f8;
+    --surface: #ffffff;
+    --sidebar-bg: #1a202c;
+    --sidebar-text: #a0aec0;
+    --sidebar-active: #63b3ed;
+    --sidebar-hover: #2d3748;
+    --accent: #3182ce;
+    --accent-light: #ebf8ff;
+    --accent-dark: #2c5282;
+    --text: #2d3748;
+    --text-light: #718096;
+    --border: #e2e8f0;
+    --code-bg: #1e2432;
+    --success: #38a169;
+    --warning: #d69e2e;
+    --info: #3182ce;
+    --tip-bg: #ebf8ff;
+    --warn-bg: #fffbeb;
+    --danger-bg: #fff5f5;
+    --layer-raw: #744210;
+    --layer-dl: #276749;
+    --layer-dwh: #2c5282;
+    --layer-mart: #553c9a;
+    --radius: 8px;
+    --shadow: 0 1px 3px rgba(0,0,0,.12), 0 1px 2px rgba(0,0,0,.08);
+    --shadow-md: 0 4px 6px rgba(0,0,0,.1), 0 2px 4px rgba(0,0,0,.06);
+  }
+  html { scroll-behavior: smooth; }
+  body {
+    font-family: 'Helvetica Neue', 'Hiragino Kaku Gothic ProN', 'Meiryo', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.7;
+    display: flex;
+    min-height: 100vh;
+  }
+
+  /* ─── Sidebar ─────────────────────────────────────────── */
+  #sidebar {
+    width: 260px;
+    min-width: 260px;
+    background: var(--sidebar-bg);
+    position: fixed;
+    top: 0; left: 0; bottom: 0;
+    overflow-y: auto;
+    z-index: 100;
+    padding-bottom: 2rem;
+  }
+  .sidebar-logo {
+    padding: 1.5rem 1.25rem 1rem;
+    border-bottom: 1px solid #2d3748;
+  }
+  .sidebar-logo h2 {
+    color: #fff;
+    font-size: 0.9rem;
+    font-weight: 700;
+    line-height: 1.4;
+  }
+  .sidebar-logo .badge-stack {
+    display: flex; flex-wrap: wrap; gap: 4px; margin-top: 0.6rem;
+  }
+  .badge-stack span {
+    background: #2d3748;
+    color: #63b3ed;
+    font-size: 0.65rem;
+    padding: 2px 7px;
+    border-radius: 20px;
+    font-weight: 600;
+  }
+  .nav-section {
+    padding: 1rem 0 0;
+  }
+  .nav-section-title {
+    color: #4a5568;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 0.25rem 1.25rem 0.25rem;
+  }
+  .nav-section a {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.42rem 1.25rem;
+    color: var(--sidebar-text);
+    text-decoration: none;
+    font-size: 0.82rem;
+    transition: all .15s;
+    border-left: 3px solid transparent;
+  }
+  .nav-section a:hover {
+    background: var(--sidebar-hover);
+    color: #e2e8f0;
+  }
+  .nav-section a.active {
+    color: var(--sidebar-active);
+    border-left-color: var(--sidebar-active);
+    background: rgba(99,179,237,.08);
+  }
+  .nav-section a .icon { font-size: 0.9rem; width: 1.2rem; text-align: center; }
+
+  /* ─── Main Content ────────────────────────────────────── */
+  #content {
+    margin-left: 260px;
+    flex: 1;
+    max-width: 960px;
+    padding: 2rem 2.5rem;
+  }
+
+  /* ─── Hero ───────────────────────────────────────────── */
+  .hero {
+    background: linear-gradient(135deg, #1a202c 0%, #2d3748 50%, #1a365d 100%);
+    border-radius: var(--radius);
+    padding: 2.5rem 2.5rem;
+    margin-bottom: 2rem;
+    color: white;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: -50%; right: -10%;
+    width: 400px; height: 400px;
+    background: radial-gradient(circle, rgba(99,179,237,.15) 0%, transparent 70%);
+  }
+  .hero h1 { font-size: 1.75rem; font-weight: 800; line-height: 1.3; margin-bottom: 0.75rem; }
+  .hero p { font-size: 0.95rem; color: #a0aec0; max-width: 600px; }
+  .hero-badges { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-top: 1.25rem; }
+  .hero-badge {
+    background: rgba(255,255,255,.1);
+    border: 1px solid rgba(255,255,255,.2);
+    color: #e2e8f0;
+    padding: 0.3rem 0.8rem;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    font-weight: 600;
+  }
+
+  /* ─── Section Headers ─────────────────────────────────── */
+  .section { margin-bottom: 3rem; }
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 2px solid var(--border);
+  }
+  .section-header .step-num {
+    background: var(--accent);
+    color: white;
+    width: 2rem; height: 2rem;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.8rem;
+    font-weight: 800;
+    flex-shrink: 0;
+  }
+  .section-header h2 {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+  h3 { font-size: 1.05rem; font-weight: 700; margin: 1.5rem 0 0.75rem; color: var(--text); }
+  h4 { font-size: 0.95rem; font-weight: 700; margin: 1.25rem 0 0.5rem; color: var(--text-light); }
+  p { margin-bottom: 0.85rem; font-size: 0.92rem; }
+
+  /* ─── Card ────────────────────────────────────────────── */
+  .card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    padding: 1.5rem;
+    margin-bottom: 1.25rem;
+  }
+
+  /* ─── Code Block ──────────────────────────────────────── */
+  .code-block { margin: 0.75rem 0 1.25rem; position: relative; }
+  .code-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #2d3748;
+    padding: 0.5rem 1rem;
+    border-radius: var(--radius) var(--radius) 0 0;
+    font-size: 0.75rem;
+  }
+  .code-header .file-name { color: #63b3ed; font-family: monospace; font-weight: 600; }
+  .code-header .lang-tag { color: #a0aec0; }
+  .copy-btn {
+    background: rgba(255,255,255,.1);
+    border: 1px solid rgba(255,255,255,.2);
+    color: #e2e8f0;
+    padding: 3px 10px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    cursor: pointer;
+    transition: all .2s;
+  }
+  .copy-btn:hover { background: rgba(255,255,255,.2); }
+  .copy-btn.copied { background: #38a169; border-color: #38a169; }
+  .code-block pre {
+    margin: 0 !important;
+    border-radius: 0 0 var(--radius) var(--radius) !important;
+    font-size: 0.82rem !important;
+    max-height: 500px;
+    overflow-y: auto;
+  }
+  .code-block pre code { border-radius: 0 !important; }
+
+  /* ─── Callout Boxes ───────────────────────────────────── */
+  .callout {
+    border-left: 4px solid;
+    border-radius: 0 var(--radius) var(--radius) 0;
+    padding: 0.9rem 1.1rem;
+    margin: 1rem 0;
+    font-size: 0.88rem;
+  }
+  .callout-tip    { background: var(--tip-bg);    border-color: var(--info);    }
+  .callout-warn   { background: var(--warn-bg);   border-color: var(--warning); }
+  .callout-danger { background: var(--danger-bg); border-color: #e53e3e; }
+  .callout .callout-title { font-weight: 700; margin-bottom: 0.35rem; }
+  .callout-tip .callout-title    { color: var(--info); }
+  .callout-warn .callout-title   { color: var(--warning); }
+  .callout-danger .callout-title { color: #e53e3e; }
+  .callout p:last-child { margin-bottom: 0; }
+
+  /* ─── Architecture Diagram ────────────────────────────── */
+  .arch-diagram {
+    background: var(--code-bg);
+    border-radius: var(--radius);
+    padding: 1.5rem;
+    overflow-x: auto;
+    font-family: 'Courier New', monospace;
+    font-size: 0.8rem;
+    color: #e2e8f0;
+    line-height: 1.8;
+    margin: 1rem 0 1.5rem;
+  }
+
+  /* ─── Pipeline Flow ───────────────────────────────────── */
+  .pipeline {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin: 1.5rem 0;
+    flex-wrap: wrap;
+  }
+  .pipe-step {
+    flex: 1;
+    min-width: 120px;
+    text-align: center;
+    padding: 0.9rem 0.5rem;
+    border-radius: var(--radius);
+    font-size: 0.82rem;
+    font-weight: 700;
+    position: relative;
+  }
+  .pipe-step .pipe-icon { font-size: 1.4rem; display: block; margin-bottom: 0.25rem; }
+  .pipe-step .pipe-label { font-size: 0.68rem; font-weight: 400; margin-top: 0.2rem; opacity: .8; }
+  .pipe-arrow {
+    width: 30px; text-align: center;
+    color: #718096; font-size: 1.2rem;
+    flex-shrink: 0;
+  }
+  .pipe-raw   { background: #fefcbf; color: #744210; border: 2px solid #f6e05e; }
+  .pipe-dl    { background: #c6f6d5; color: #276749; border: 2px solid #68d391; }
+  .pipe-dwh   { background: #bee3f8; color: #2c5282; border: 2px solid #63b3ed; }
+  .pipe-mart  { background: #e9d8fd; color: #553c9a; border: 2px solid #b794f4; }
+  .pipe-dbt   { background: #fed7aa; color: #9c4221; border: 2px solid #f6ad55; }
+
+  /* ─── File Tree ───────────────────────────────────────── */
+  .file-tree {
+    background: var(--code-bg);
+    border-radius: var(--radius);
+    padding: 1.25rem 1.5rem;
+    font-family: 'Courier New', monospace;
+    font-size: 0.83rem;
+    color: #e2e8f0;
+    line-height: 1.9;
+  }
+  .file-tree .dir  { color: #63b3ed; font-weight: 700; }
+  .file-tree .file { color: #68d391; }
+  .file-tree .comment { color: #718096; font-style: italic; }
+
+  /* ─── Table ───────────────────────────────────────────── */
+  table { width: 100%; border-collapse: collapse; font-size: 0.87rem; margin: 1rem 0; }
+  th { background: var(--accent); color: white; padding: 0.6rem 0.9rem; text-align: left; font-size: 0.8rem; }
+  td { padding: 0.55rem 0.9rem; border-bottom: 1px solid var(--border); }
+  tr:nth-child(even) td { background: #f7fafc; }
+
+  /* ─── Inline Code ─────────────────────────────────────── */
+  code:not(.hljs code) {
+    background: #edf2f7;
+    color: #c53030;
+    padding: 0.15em 0.4em;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.85em;
+  }
+
+  /* ─── Steps List ──────────────────────────────────────── */
+  .steps { counter-reset: step; list-style: none; padding: 0; }
+  .steps li {
+    counter-increment: step;
+    display: flex;
+    gap: 0.9rem;
+    margin-bottom: 0.75rem;
+    font-size: 0.92rem;
+  }
+  .steps li::before {
+    content: counter(step);
+    background: var(--accent);
+    color: white;
+    min-width: 1.5rem; height: 1.5rem;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.72rem;
+    font-weight: 800;
+    margin-top: 0.1rem;
+    flex-shrink: 0;
+  }
+  ul.check { list-style: none; padding: 0; }
+  ul.check li { padding: 0.2rem 0; font-size: 0.92rem; }
+  ul.check li::before { content: '✓ '; color: var(--success); font-weight: 700; }
+
+  /* ─── Grid ────────────────────────────────────────────── */
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin: 1rem 0; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; margin: 1rem 0; }
+  @media (max-width: 700px) {
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+    #sidebar { display: none; }
+    #content { margin-left: 0; padding: 1rem; }
+  }
+
+  /* ─── Tag badge ───────────────────────────────────────── */
+  .tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    margin: 2px;
+  }
+  .tag-blue   { background: #bee3f8; color: #2c5282; }
+  .tag-green  { background: #c6f6d5; color: #276749; }
+  .tag-purple { background: #e9d8fd; color: #553c9a; }
+  .tag-orange { background: #feebc8; color: #9c4221; }
+
+  /* ─── Summary box ─────────────────────────────────────── */
+  .summary-box {
+    background: linear-gradient(135deg, #ebf8ff, #bee3f8);
+    border: 1px solid #63b3ed;
+    border-radius: var(--radius);
+    padding: 1.25rem 1.5rem;
+    margin: 1.25rem 0;
+  }
+  .summary-box h4 { color: #2c5282; margin-top: 0; }
+
+  /* ─── Layer Badge ─────────────────────────────────────── */
+  .layer-badge {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    margin-bottom: 0.5rem;
+  }
+  .lb-raw  { background: #fefcbf; color: #744210; border: 1px solid #f6e05e; }
+  .lb-dl   { background: #c6f6d5; color: #276749; border: 1px solid #68d391; }
+  .lb-dwh  { background: #bee3f8; color: #2c5282; border: 1px solid #63b3ed; }
+  .lb-mart { background: #e9d8fd; color: #553c9a; border: 1px solid #b794f4; }
+
+  /* ─── TOC active ──────────────────────────────────────── */
+  .section { scroll-margin-top: 20px; }
+  hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════════════════════════════════
+     SIDEBAR
+════════════════════════════════════════════════════════ -->
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <h2>🏗️ モダンデータスタック<br>実践ガイド</h2>
+    <div class="badge-stack">
+      <span>dbt</span><span>Iceberg</span><span>Trino</span>
+      <span>MinIO</span><span>Docker</span><span>Python</span>
+    </div>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">はじめに</div>
+    <a href="#intro"><span class="icon">🎯</span>概要・アーキテクチャ</a>
+    <a href="#prereqs"><span class="icon">⚙️</span>前提条件・準備</a>
+    <a href="#structure"><span class="icon">📁</span>プロジェクト構成</a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">環境構築</div>
+    <a href="#step1"><span class="icon">🐳</span>Step 1: Docker環境</a>
+    <a href="#step2"><span class="icon">📊</span>Step 2: サンプルデータ</a>
+    <a href="#step3"><span class="icon">📥</span>Step 3: データ取り込み</a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">dbtパイプライン</div>
+    <a href="#step4"><span class="icon">🔧</span>Step 4: dbt設定</a>
+    <a href="#step5"><span class="icon">🟢</span>Step 5: datalake層</a>
+    <a href="#step6"><span class="icon">🔵</span>Step 6: dwh層</a>
+    <a href="#step7"><span class="icon">🟣</span>Step 7: mart層</a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">dbt機能</div>
+    <a href="#step8"><span class="icon">🧪</span>Step 8: テスト</a>
+    <a href="#step9"><span class="icon">📖</span>Step 9: ドキュメント</a>
+    <a href="#step10"><span class="icon">📐</span>Step 10: Semantic Layer</a>
+  </div>
+
+  <div class="nav-section">
+    <div class="nav-section-title">Iceberg深掘り</div>
+    <a href="#step11"><span class="icon">🧊</span>Step 11: Iceberg機能</a>
+    <a href="#summary"><span class="icon">🎓</span>まとめ</a>
+  </div>
+</nav>
+
+<!-- ════════════════════════════════════════════════════════
+     MAIN CONTENT
+════════════════════════════════════════════════════════ -->
+<main id="content">
+
+  <!-- Hero ────────────────────────────────────────────── -->
+  <div class="hero">
+    <h1>🏗️ モダンデータスタック実践ガイド</h1>
+    <p>dbt × Apache Iceberg × Trino × MinIO で構築する<br>
+       本格的なデータパイプライン学習教材</p>
+    <div class="hero-badges">
+      <span class="hero-badge">🐳 Docker Compose</span>
+      <span class="hero-badge">🧊 Apache Iceberg</span>
+      <span class="hero-badge">⚡ Trino</span>
+      <span class="hero-badge">🗄️ MinIO (S3互換)</span>
+      <span class="hero-badge">🔧 dbt-trino</span>
+      <span class="hero-badge">🐍 Python</span>
+      <span class="hero-badge">💻 macOS</span>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════
+       SECTION: INTRO
+  ══════════════════════════════════════════════════ -->
+  <section class="section" id="intro">
+    <div class="section-header">
+      <div style="width:2rem;height:2rem;background:var(--accent);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:1rem;flex-shrink:0;">🎯</div>
+      <h2>概要・アーキテクチャ</h2>
+    </div>
+
+    <div class="card">
+      <h3>📌 このガイドで学ぶこと</h3>
+      <p>モダンデータスタック（MDS）は、クラウドネイティブなデータ処理を支える技術スタックの総称です。このガイドでは以下の技術を <strong>ハンズオン形式</strong> で学びます。</p>
+      <div class="grid-2">
+        <div>
+          <h4>🔧 dbt (data build tool)</h4>
+          <ul class="check">
+            <li>SQL によるデータ変換モデル</li>
+            <li>テスト機能（品質保証）</li>
+            <li>ドキュメント自動生成</li>
+            <li>Semantic Layer (MetricFlow)</li>
+          </ul>
+        </div>
+        <div>
+          <h4>🧊 Apache Iceberg</h4>
+          <ul class="check">
+            <li>オープンテーブルフォーマット</li>
+            <li>タイムトラベル（履歴参照）</li>
+            <li>スキーマ進化</li>
+            <li>ACID トランザクション</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <h3>🏛️ アーキテクチャ全体像</h3>
+    <div class="arch-diagram">
+  ┌─────────────────────────────────────────────────────────────────────┐
+  │                    Docker Compose 環境                               │
+  │                                                                      │
+  │  ┌─────────────┐    ┌──────────────────┐    ┌────────────────────┐  │
+  │  │   MinIO     │    │  Iceberg REST    │    │      Trino         │  │
+  │  │  (S3互換    │◄───│    Catalog       │◄───│  (クエリエンジン)   │  │
+  │  │  オブジェク │    │ (メタデータ管理)  │    │   Port: 8080       │  │
+  │  │  トストレージ│    │  Port: 8181     │    └────────────────────┘  │
+  │  │  Port:9000 │    └──────────────────┘              ▲             │
+  │  │  Console:  │                                       │             │
+  │  │    9001    │    ┌─────────────────────────────────┘             │
+  │  └─────────────┘   │                                               │
+  │         ▲          │  dbt (ローカル実行)  ←→  profiles.yml         │
+  │         │          │                                               │
+  │  s3://warehouse/   └───────────────────────────────────────────── │
+  │    ├── raw/                                                         │
+  │    ├── datalake/                                                    │
+  │    ├── dwh/                                                         │
+  │    └── mart/          ← すべて Iceberg 形式で保存                   │
+  └─────────────────────────────────────────────────────────────────────┘
+
+  Python スクリプト (ローカル実行)
+    ├── 01_generate_data.py   → CSV / Parquet を生成
+    └── 02_ingest_data.py     → Trino経由で iceberg.raw へ投入
+    </div>
+
+    <h3>🔄 データパイプライン フロー</h3>
+    <div class="pipeline">
+      <div class="pipe-step pipe-raw">
+        <span class="pipe-icon">📄</span>
+        <strong>Raw Sources</strong>
+        <div class="pipe-label">CSV / Parquet<br>Python生成</div>
+      </div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-step pipe-dl">
+        <span class="pipe-icon">🏞️</span>
+        <strong>datalake層</strong>
+        <div class="pipe-label">iceberg.datalake<br>ソースの複製</div>
+      </div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-step pipe-dwh">
+        <span class="pipe-icon">🏛️</span>
+        <strong>dwh層</strong>
+        <div class="pipe-label">iceberg.dwh<br>クレンジング・結合</div>
+      </div>
+      <div class="pipe-arrow">→</div>
+      <div class="pipe-step pipe-mart">
+        <span class="pipe-icon">🏪</span>
+        <strong>mart層</strong>
+        <div class="pipe-label">iceberg.mart<br>集計・ビジネス指標</div>
+      </div>
+    </div>
+
+    <h3>📦 サンプルデータセット（3種類）</h3>
+    <table>
+      <thead><tr><th>データ</th><th>形式</th><th>内容</th><th>作成方法</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><code>customers</code></td>
+          <td><span class="tag tag-green">CSV</span></td>
+          <td>顧客マスタ（10件）</td>
+          <td>手動作成 CSV</td>
+        </tr>
+        <tr>
+          <td><code>orders</code></td>
+          <td><span class="tag tag-green">CSV</span></td>
+          <td>注文トランザクション（15件）</td>
+          <td>手動作成 CSV</td>
+        </tr>
+        <tr>
+          <td><code>products</code></td>
+          <td><span class="tag tag-orange">Parquet</span></td>
+          <td>商品マスタ（5件）</td>
+          <td>Python スクリプトで生成</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <hr>
+
+  <!-- ══════════════════════════════════════════════════
+       SECTION: PREREQS
+  ══════════════════════════════════════════════════ -->
+  <section class="section" id="prereqs">
+    <div class="section-header">
+      <div style="width:2rem;height:2rem;background:#718096;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:1rem;flex-shrink:0;">⚙️</div>
+      <h2>前提条件・準備</h2>
+    </div>
+
+    <div class="card">
+      <h3>必要なツール</h3>
+      <table>
+        <thead><tr><th>ツール</th><th>バージョン</th><th>インストール確認</th></tr></thead>
+        <tbody>
+          <tr><td>Docker Desktop</td><td>最新版</td><td><code>docker --version</code></td></tr>
+          <tr><td>Python</td><td>3.11 以上</td><td><code>python3 --version</code></td></tr>
+          <tr><td>pip</td><td>最新版</td><td><code>pip --version</code></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>🐍 Python 仮想環境のセットアップ</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <span class="file-name">Terminal</span>
+        <div style="display:flex;gap:.5rem;align-items:center;">
+          <span class="lang-tag">bash</span>
+          <button class="copy-btn" onclick="copyCode(this)">コピー</button>
+        </div>
+      </div>
+      <pre><code class="language-bash"># プロジェクトルートに移動
+cd modern-data-stack
+
+# 仮想環境を作成・有効化
+python3 -m venv .venv
+source .venv/bin/activate
+
+# 依存パッケージをインストール
+pip install pandas pyarrow trino dbt-core==1.8.* dbt-trino==1.8.*</code></pre>
+    </div>
+
+    <div class="callout callout-tip">
+      <div class="callout-title">💡 dbt と MetricFlow について</div>
+      <p><code>dbt-core 1.8</code> には MetricFlow が統合されており、<code>dbt sl</code> コマンドで Semantic Layer を利用できます。<code>dbt-trino 1.8</code> は Trino 用のアダプターです。</p>
+    </div>
+  </section>
+
+  <hr>
+
+  <!-- ══════════════════════════════════════════════════
+       SECTION: STRUCTURE
+  ══════════════════════════════════════════════════ -->
+  <section class="section" id="structure">
+    <div class="section-header">
+      <div style="width:2rem;height:2rem;background:#718096;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:1rem;flex-shrink:0;">📁</div>
+      <h2>プロジェクト構成</h2>
+    </div>
+    <p>このガイドでは以下のファイル・ディレクトリ構成を作成します。</p>
+    <div class="file-tree">
+<span class="dir">modern-data-stack/</span>
+├── <span class="file">docker-compose.yml</span>         <span class="comment"># Docker サービス定義</span>
+├── <span class="dir">trino/</span>
+│   └── <span class="dir">catalog/</span>
+│       └── <span class="file">iceberg.properties</span>    <span class="comment"># Iceberg カタログ設定</span>
+├── <span class="dir">data/</span>                         <span class="comment"># スクリプトが生成する</span>
+│   ├── <span class="file">customers.csv</span>
+│   └── <span class="file">orders.csv</span>
+├── <span class="dir">scripts/</span>
+│   ├── <span class="file">requirements.txt</span>
+│   ├── <span class="file">01_generate_data.py</span>       <span class="comment"># CSV/Parquet 生成</span>
+│   └── <span class="file">02_ingest_data.py</span>         <span class="comment"># Iceberg への取り込み</span>
+└── <span class="dir">dbt/</span>
+    ├── <span class="file">dbt_project.yml</span>
+    ├── <span class="file">profiles.yml</span>
+    ├── <span class="dir">macros/</span>
+    │   └── <span class="file">generate_schema_name.sql</span>  <span class="comment"># スキーマ名マクロ</span>
+    ├── <span class="dir">models/</span>
+    │   ├── <span class="file">sources.yml</span>               <span class="comment"># ソース定義</span>
+    │   ├── <span class="dir">datalake/</span>                 <span class="comment"># datalake層</span>
+    │   │   ├── <span class="file">dl_customers.sql</span>
+    │   │   ├── <span class="file">dl_orders.sql</span>
+    │   │   ├── <span class="file">dl_products.sql</span>
+    │   │   └── <span class="file">schema.yml</span>
+    │   ├── <span class="dir">dwh/</span>                      <span class="comment"># dwh層（ステージング）</span>
+    │   │   ├── <span class="file">stg_customers.sql</span>
+    │   │   ├── <span class="file">stg_orders.sql</span>
+    │   │   ├── <span class="file">stg_products.sql</span>
+    │   │   └── <span class="file">schema.yml</span>
+    │   └── <span class="dir">mart/</span>                     <span class="comment"># mart層（分析用）</span>
+    │       ├── <span class="file">mart_sales_summary.sql</span>
+    │       ├── <span class="file">mart_customer_ltv.sql</span>
+    │       ├── <span class="file">mart_metrics.yml</span>          <span class="comment"># Semantic Layer定義</span>
+    │       └── <span class="file">schema.yml</span>
+    └── <span class="dir">tests/</span>
+        └── <span class="file">assert_no_negative_amount.sql</span>  <span class="comment"># カスタムテスト</span>
+    </div>
+    <p style="margin-top:0.75rem;">まずプロジェクトのルートディレクトリを作成します。</p>
+    <div class="code-block">
+      <div class="code-header">
+        <span class="file-name">Terminal</span>
+        <div style="display:flex;gap:.5rem;align-items:center;">
+          <span class="lang-tag">bash</span>
+          <button class="copy-btn" onclick="copyCode(this)">コピー</button>
+        </div>
+      </div>
+      <pre><code class="language-bash">mkdir -p modern-data-stack/{trino/catalog,data,scripts,dbt/{macros,models/{datalake,dwh,mart},tests}}
+cd modern-data-stack</code></pre>
+    </div>
+  </section>
+
+  <hr>
+
+  <!-- ══════════════════════════════════════════════════
+       STEP 1: Docker 環境
+  ══════════════════════════════════════════════════ -->
+  <section class="section" id="step1">
+    <div class="section-header">
+      <div class="step-num">1</div>
+      <h2>Docker 環境構築</h2>
+    </div>
+
+    <p>4つのサービスを Docker Compose で起動します。</p>
+
+    <table>
+      <thead><tr><th>サービス</th><th>役割</th><th>ポート</th></tr></thead>
+      <tbody>
+        <tr><td><strong>MinIO</strong></td><td>S3互換オブジェクトストレージ（Icebergデータ格納）</td><td>9000, 9001</td></tr>
+        <tr><td><strong>minio-init</strong></td><td>バケット自動作成（初期化）</td><td>-</td></tr>
+        <tr><td><strong>iceberg-rest</strong></td><td>Iceberg REST カタログ（テーブルメタデータ管理）</td><td>8181</td></tr>
+        <tr><td><strong>Trino</strong></td><td>分散 SQL クエリエンジン</td><td>8080</td></tr>
+      </tbody>
+    </table>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="file-name">docker-compose.yml</span>
+        <div style="display:flex;gap:.5rem;align-items:center;">
+          <span class="lang-tag">yaml</span>
+          <button class="copy-btn" onclick="copyCode(this)">コピー</button>
+        </div>
+      </div>
+      <pre><code class="language-yaml">services:
+
+  # ── MinIO: S3互換オブジェクトストレージ ──────────────────
+  minio:
+    image: minio/minio:latest
+    container_name: minio
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"   # S3 API
+      - "9001:9001"   # Web コンソール
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── MinIO 初期化: バケット作成 ─────────────────────────
+  minio-init:
+    image: minio/mc:latest
+    container_name: minio-init
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+        mc alias set local http://minio:9000 minioadmin minioadmin;
+        mc mb --ignore-existing local/warehouse;
+        echo 'バケット warehouse 作成完了';
+      "
+
+  # ── Iceberg REST Catalog ───────────────────────────────
+  iceberg-rest:
+    image: tabulario/iceberg-rest:0.10.0
+    container_name: iceberg-rest
+    environment:
+      AWS_ACCESS_KEY_ID: minioadmin
+      AWS_SECRET_ACCESS_KEY: minioadmin
+      AWS_REGION: us-east-1
+      CATALOG_WAREHOUSE: s3://warehouse/
+      CATALOG_IO__IMPL: org.apache.iceberg.aws.s3.S3FileIO
+      CATALOG_S3_ENDPOINT: http://minio:9000
+      CATALOG_S3_PATH__STYLE__ACCESS: "true"
+    ports:
+      - "8181:8181"
+    depends_on:
+      - minio-init
+
+  # ── Trino: 分散 SQL クエリエンジン ──────────────────────
+  trino:
+    image: trinodb/trino:435
+    container_name: trino
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./trino/catalog:/etc/trino/catalog
+    depends_on:
+      - iceberg-rest
+
+volumes:
+  minio_data:</code></pre>
+    </div>
+
+    <h3>Trino Iceberg カタログ設定</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <span class="file-name">trino/catalog/iceberg.properties</span>
+        <div style="display:flex;gap:.5rem;align-items:center;">
+          <span class="lang-tag">properties</span>
+          <button class="copy-btn" onclick="copyCode(this)">コピー</button>
+        </div>
+      </div>
+      <pre><code class="language-bash"># Iceberg コネクタを使用
+connector.name=iceberg
+
+# REST カタログを指定
+iceberg.catalog.type=rest
+iceberg.rest-catalog.uri=http://iceberg-rest:8181
+
+# ネイティブ S3 ファイルシステムを有効化
+fs.native-s3.enabled=true
+s3.endpoint=http://minio:9000
+s3.region=us-east-1
+s3.aws-access-key=minioadmin
+s3.aws-secret-key=minioadmin
+s3.path-style-access=true
+s3.ssl.enabled=false</code></pre>
+    </div>
+
+    <h3>Docker コンテナ起動</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <span class="file-name">Terminal</span>
+        <div style="display:flex;gap:.5rem;align-items:center;">
+          <span class="lang-tag">bash</span>
+          <button class="copy-btn" onclick="copyCode(this)">コピー</button>
+        </div>
+      </div>
+      <pre><code class="language-bash"># コンテナをバックグラウンドで起動
+docker compose up -d
+
+# 全サービスが起動するまで待機（約30秒）
+docker compose ps</code></pre>
+    </div>
+
+    <h3>✅ 動作確認</h3>
+    <div class="grid-2">
+      <div class="card" style="padding:1rem;">
+        <h4 style="margin-top:0;">MinIO コンソール</h4>
+        <p>ブラウザで <a href="http://localhost:9001" target="_blank" style="color:var(--accent);">http://localhost:9001</a> を開く</p>
+        <p style="font-size:0.8rem;color:var(--text-light);">ユーザー: <code>minioadmin</code><br>パスワード: <code>minioadmin</code></p>
+        <p style="font-size:0.8rem;">→ <code>warehouse</code> バケットが存在することを確認</p>
+      </div>
+      <div class="card" style="padding:1rem;">
+        <h4 style="margin-top:0;">Trino Web UI</h4>
+        <p>ブラウザで <a href="http://localhost:8080" target="_blank" style="color:var(--accent);">http://localhost:8080</a> を開く</p>
+        <p style="font-size:0.8rem;color:var(--text-light);">ユーザー名: <code>trino</code>（パスワード不要）</p>
+        <p style="font-size:0.8rem;">→ クエリ実行履歴画面が表示されることを確認</p>
+      </div>
+    </div>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="file-name">Terminal — Trino CLI で接続確認</span>
+        <div style="display:flex;gap:.5rem;align-items:center;">
+          <span class="lang-tag">bash</span>
+          <button class="copy-btn" onclick="copyCode(this)">コピー</button>
+        </div>
+      </div>
+      <pre><code class="language-bash"># Trino CLI で接続
+docker exec -it trino trino
+
+# Iceberg カタログのスキーマ一覧を確認
+trino> SHOW SCHEMAS FROM iceberg;
+# Schema
+# --------
+# information_schema
+# (1 row)
+
+trino> exit</code></pre>
+    </div>
+  </section>
+
+  <hr>
+
+  <!-- ══════════════════════════════════════════════════
+       STEP 2: サンプルデータ作成
+  ══════════════════════════════════════════════════ -->
+  <section class="section" id="step2">
+    <div class="section-header">
+      <div class="step-num">2</div>
+      <h2>サンプルデータ作成</h2>
+    </div>
+
+    <p>3種類のサンプルデータを作成します。CSV ファイルはそのまま <code>data/</code> ディレクトリに配置し、Parquet ファイルは Python スクリプトで生成します。</p>
+
+    <h3>📄 data/customers.csv（手動作成）</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <span class="file-name">data/customers.csv</span>
+        <div style="display:flex;gap:.5rem;align-items:center;">
+          <span class="lang-tag">csv</span>
+          <button class="copy-btn" onclick="copyCode(this)">コピー</button>
+        </div>
+      </div>
+      <pre><code class="language-bash">customer_id,customer_name,email,city,segment,created_at
+1,山田太郎,<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="19607874787d78597c61787469757c377a7674">[email&#160;protected]</a>,東京,プレミアム,2024-01-15
+2,佐藤花子,<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="037062776c43667b626e736f662d606c6e">[email&#160;protected]</a>,大阪,スタンダード,2024-02-20
+3,鈴木一郎,<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="285b5d525d4341684d50494558444d064b4745">[email&#160;protected]</a>,名古屋,プレミアム,2024-03-10
+4,田中美咲,<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="0175606f606a60416479606c716d642f626e6c">[email&#160;protected]</a>,福岡,スタンダード,2024-01-25
+5,伊藤健太,<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="3e574a517e5b465f534e525b105d5153">[email&#160;protected]</a>,東京,プレミアム,2024-04-05
+6,渡辺さくら,<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="0e796f7a6f606f6c6b4e6b766f637e626b206d6163">[email&#160;protected]</a>,札幌,スタンダード,2024-02-10
+7,中村拓也,<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="7816191319150d0a19381d00191508141d561b1715">[email&#160;protected]</a>,大阪,プレミアム,2024-03-22
+8,小林陽子,<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="751e1a17140c14061d1c35100d14180519105b161a18">[email&#160;protected]</a>,東京,スタンダード,2024-01-30
+9,加藤誠,<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="9cf7fde8f3dcf9e4fdf1ecf0f9b2fff3f1">[email&#160;protected]</a>,名古屋,プレミアム,2024-04-15
+10,吉田奈々,<a href="/cdn-cgi/l/email-protection" class="__cf_email__" data-cfemail="4c35233f2425282d0c29342d213c2029622f2321">[email&#160;protected]</a>,福岡,スタンダード,2024-02-28</code></pre>
+    </div>
+
+    <h3>📄 data/orders.csv（手動作成）</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <span class="file-name">data/orders.csv</span>
+        <div style="display:flex;gap:.5rem;align-items:center;">
+          <span class="lang-tag">csv</span>
+          <button class="copy-btn" onclick="copyCode(this)">コピー</button>
+        </div>
+      </div>
+      <pre><code class="language-bash">order_id,customer_id,product_id,order_date,quantity,unit_price,status,total_amount
+1,1,101,2024-04-01,2,15000,completed,30000
+2,2,102,2024-04-03,1,8500,completed,8500
+3,1,103,2024-04-05,3,3000,completed,9000
+4,3,101,2024-04-07,1,15000,shipped,15000
+5,4,104,2024-04-10,2,5000,pending,10000
+6,5,102,2024-04-12,1,8500,completed,8500
+7,2,103,2024-04-15,4,3000,cancelled,12000
+8,3,104,2024-04-18,2,5000,completed,10000
+9,1,105,2024-04-20,1,25000,completed,25000
+10,5,101,2024-04-22,2,15000,shipped,30000
+11,6,102,2024-04-25,1,8500,completed,8500
+12,7,103,2024-04-27,2,3000,completed,6000
+13,8,104,2024-04-28,3,5000,pending,15000
+14,9,105,2024-04-29,1,25000,completed,25000
+15,10,101,2024-04-30,2,15000,completed,30000</code></pre>
+    </div>
+
+    <h3>🐍 scripts/01_generate_data.py（Parquet 生成）</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <span class="file-name">scripts/01_generate_data.py</span>
+        <div style="display:flex;gap:.5rem;align-items:center;">
+          <span class="lang-tag">python</span>
+          <button class="copy-btn" onclick="copyCode(this)">コピー</button>
+        </div>
+      </div>
+      <pre><code class="language-python">"""
+products.parquet を生成するスクリプト
+実行: python scripts/01_generate_data.py
+"""
+import os
+import pandas as pd
+import pyarrow as pa
+import pyarrow.parquet as pq
+
+os.makedirs("data", exist_ok=True)
+
+# ── products.parquet を生成 ──────────────────────────────
+products_data = {
+    "product_id":    [101,           102,              103,      104,            105],
+    "product_name":  ["ノートPC Pro", "ワイヤレスマウス", "USBハブ", "モニタースタンド", "4Kモニター"],
+    "category":      ["パソコン",     "周辺機器",        "周辺機器", "アクセサリ",      "パソコン"],
+    "price":         [15000,          8500,              3000,     5000,            25000],
+    "stock_quantity":[50,             200,               150,      100,             30],
+    "created_at":    ["2023-06-01",  "2023-07-15",      "2023-08-01", "2023-09-10", "2023-10-20"],
+}
+
+df = pd.DataFrame(products_data)
+table = pa.Table.from_pandas(df, preserve_index=False)
+pq.write_table(table, "data/products.parquet")
+
+print("✅ data/products.parquet を生成しました")
+print(df.to_string())
+</code></pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="file-name">Terminal — スクリプト実行</span>
+        <div style="display:flex;gap:.5rem;align-items:center;">
+          <span class="lang-tag">bash</span>
+          <button class="copy-btn" onclick="copyCode(this)">コピー</button>
+        </div>
+      </div>
+      <pre><code class="language-bash">python scripts/01_generate_data.py
+# ✅ data/products.parquet を生成しました
+# product_id  product_name  category  price  stock_quantity  created_at
+# 101         ノートPC Pro   パソコン  15000  50              2023-06-01
+# ...
+
+ls -lh data/
+# -rw-r--r-- customers.csv
+# -rw-r--r-- orders.csv
+# -rw-r--r-- products.parquet</code></pre>
+    </div>
+  </section>
+
+  <hr>
+
+  <!-- ══════════════════════════════════════════════════
+       STEP 3: データ取り込み
+  ══════════════════════════════════════════════════ -->
+  <section class="section" id="step3">
+    <div class="section-header">
+      <div class="step-num">3</div>
+      <h2>データ取り込み（Iceberg Raw レイヤー）</h2>
+    </div>
+
+    <p>Python スクリプトが Trino Python クライアント経由で Trino に接続し、<code>iceberg.raw</code> スキーマに3つの Iceberg テーブルを作成・データ投入します。</p>
+
+    <div class="callout callout-tip">
+      <div class="callout-title">💡 なぜ Trino 経由でデータ投入するのか？</div>
+      <p>Trino の Iceberg コネクタを使うことで、MinIO への Parquet ファイル保存と Iceberg カタログへのメタデータ登録が自動的に行われます。PyIceberg を別途インストールする必要がありません。</p>
+    </div>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="file-name">scripts/02_ingest_data.py</span>
+        <div style="display:flex;gap:.5rem;align-items:center;">
+          <span class="lang-tag">python</span>
+          <button class="copy-btn" onclick="copyCode(this)">コピー</button>
+        </div>
+      </div>
+      <pre><code class="language-python">"""
+CSV / Parquet データを Iceberg (iceberg.raw) へ取り込むスクリプト
+実行: python scripts/02_ingest_data.py
+"""
+import pandas as pd
+import pyarrow.parquet as pq
+import trino
+
+# ── Trino 接続 ──────────────────────────────────────────
+conn = trino.dbapi.connect(
+    host="localhost",
+    port=8080,
+    user="trino",
+    catalog="iceberg",
+)
+cur = conn.cursor()
+
+
+def run(sql: str) -> list:
+    """SQL を実行して結果を返す"""
+    cur.execute(sql)
+    try:
+        return cur.fetchall()
+    except Exception:
+        return []
+
+
+def create_raw_schema():
+    """raw スキーマを作成（存在しない場合）"""
+    run("""
+        CREATE SCHEMA IF NOT EXISTS iceberg.raw
+        WITH (location = 's3://warehouse/raw')
+    """)
+    print("✅ iceberg.raw スキーマ準備完了")
+
+
+def ingest_customers():
+    """customers.csv → iceberg.raw.customers"""
+    print("\n📥 customers を取り込み中...")
+    run("DROP TABLE IF EXISTS iceberg.raw.customers")
+    run("""
+        CREATE TABLE iceberg.raw.customers (
+            customer_id    INTEGER,
+            customer_name  VARCHAR,
+            email          VARCHAR,
+            city           VARCHAR,
+            segment        VARCHAR,
+            created_at     VARCHAR
+        ) WITH (format = 'PARQUET', location = 's3://warehouse/raw/customers')
+    """)
+
+    df = pd.read_csv("data/customers.csv")
+    values = ", ".join(
+        f"({r.customer_id}, '{r.customer_name}', '{r.email}', "
+        f"'{r.city}', '{r.segment}', '{r.created_at}')"
+        for r in df.itertuples()
+    )
+    run(f"INSERT INTO iceberg.raw.customers VALUES {values}")
+    print(f"   → {len(df)} 件 投入完了")
+
+
+def ingest_orders():
+    """orders.csv → iceberg.raw.orders"""
+    print("\n📥 orders を取り込み中...")
+    run("DROP TABLE IF EXISTS iceberg.raw.orders")
+    run("""
+        CREATE TABLE iceberg.raw.orders (
+            order_id      INTEGER,
+            customer_id   INTEGER,
+            product_id    INTEGER,
+            order_date    VARCHAR,
+            quantity      INTEGER,
+            unit_price    DECIMAL(10, 2),
+            status        VARCHAR,
+            total_amount  DECIMAL(10, 2)
+        ) WITH (format = 'PARQUET', location = 's3://warehouse/raw/orders')
+    """)
+
+    df = pd.read_csv("data/orders.csv")
+    values = ", ".join(
+        f"({r.order_id}, {r.customer_id}, {r.product_id}, "
+        f"'{r.order_date}', {r.quantity}, {r.unit_price}, "
+        f"'{r.status}', {r.total_amount})"
+        for r in df.itertuples()
+    )
+    run(f"INSERT INTO iceberg.raw.orders VALUES {values}")
+    print(f"   → {len(df)} 件 投入完了")
+
+
+def ingest_products():
+    """products.parquet → iceberg.raw.products"""
+    print("\n📥 products (Parquet) を取り込み中...")
+    run("DROP TABLE IF EXISTS iceberg.raw.products")
+    run("""
+        CREATE TABLE iceberg.raw.products (
+            product_id      INTEGER,
+            product_name    VARCHAR,
+            category        VARCHAR,
+            price           DECIMAL(10, 2),
+            stock_quantity  INTEGER,
+            created_at      VARCHAR
+        ) WITH (format = 'PARQUET', location = 's3://warehouse/raw/products')
+    """)
+
+    df = pq.read_table("data/products.parquet").to_pandas()
+    values = ", ".join(
+        f"({r.product_id}, '{r.product_name}', '{r.category}', "
+        f"{r.price}, {r.stock_quantity}, '{r.created_at}')"
+        for r in df.itertuples()
+    )
+    run(f"INSERT INTO iceberg.raw.products VALUES {values}")
+    print(f"   → {len(df)} 件 投入完了")
+
+
+if __name__ == "__main__":
+    print("🚀 データ取り込みを開始します...\n")
+    create_raw_schema()
+    ingest_customers()
+    ingest_orders()
+    ingest_products()
+    print("\n🎉 取り込み完了！")
+    conn.close()
+</code></pre>
+    </div>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="file-name">Terminal — 実行と確認</span>
+        <div style="display:flex;gap:.5rem;align-items:center;">
+          <span class="lang-tag">bash</span>
+          <button class="copy-btn" onclick="copyCode(this)">コピー</button>
+        </div>
+      </div>
+      <pre><code class="language-bash">python scripts/02_ingest_data.py
+# 🚀 データ取り込みを開始します...
+# ✅ iceberg.raw スキーマ準備完了
+# 📥 customers を取り込み中...
+#    → 10 件 投入完了
+# 📥 orders を取り込み中...
+#    → 15 件 投入完了
+# 📥 products (Parquet) を取り込み中...
+#    → 5 件 投入完了
+# 🎉 取り込み完了！
+
+# Trino CLI で確認
+docker exec -it trino trino
+trino> SELECT COUNT(*) FROM iceberg.raw.customers;  -- 10
+trino> SELECT COUNT(*) FROM iceberg.raw.orders;     -- 15
+trino> SELECT COUNT(*) FROM iceberg.raw.products;   -- 5
+trino> exit</code></pre>
+    </div>
+
+    <div class="callout callout-tip">
+      <div class="callout-title">💡 MinIO でデータを確認</div>
+      <p>MinIO コンソール（<a href="http://localhost:9001" style="color:var(--accent);">http://localhost:9001</a>）を開くと、<code>warehouse/raw/</code> 配下に <code>customers/</code>、<code>orders/</code>、<code>products/</code> ディレクトリが作成され、中に <code>.parquet</code> ファイルが保存されているのが確認できます。これが Iceberg テーブルの実体です。</p>
+    </div>
+  </section>
+
+  <hr>
+
+  <!-- ══════════════════════════════════════════════════
+       STEP 4: dbt プロジェクト設定
+  ══════════════════════════════════════════════════ -->
+  <section class="section" id="step4">
+    <div class="section-header">
+      <div class="step-num">4</div>
+      <h2>dbt プロジェクト設定</h2>
+    </div>
+
+    <h3>dbt_project.yml</h3>
+    <p>プロジェクト全体の設定ファイルです。各レイヤーのスキーマ名と materialization を一括設定します。</p>
+    <div class="code-block">
+      <div class="code-header">
+        <span class="file-name">dbt/dbt_project.yml</span>
+        <div style="display:flex;gap:.5rem;align-items:center;">
+          <span class="lang-tag">yaml</span>
+          <button class="copy-btn" onclick="copyCode(this)">コピー</button>
+        </div>
+      </div>
+      <pre><code class="language-yaml">name: modern_data_stack
+version: '1.0.0'
+config-version: 2
+
+profile: modern_data_stack
+
+model-paths:  ["models"]
+test-paths:   ["tests"]
+macro-paths:  ["macros"]
+
+target-path: "target"
+clean-targets: ["target", "dbt_packages"]
+
+models:
+  modern_data_stack:
+    # datalake層: ソースを Iceberg テーブルとして保存
+    datalake:
+      +schema: datalake
+      +materialized: table
+      +properties:
+        format: "'PARQUET'"
+
+    # dwh層: 型変換・クレンジング
+    dwh:
+      +schema: dwh
+      +materialized: table
+      +properties:
+        format: "'PARQUET'"
+
+    # mart層: 集計・ビジネスロジック
+    mart:
+      +schema: mart
+      +materialized: table
+      +properties:
+        format: "'PARQUET'"</code></pre>
+    </div>
+
+    <h3>profiles.yml</h3>
+    <p>Trino への接続設定です。<code>database: iceberg</code> とすることで、すべてのテーブルが Iceberg カタログに作成されます。</p>
+    <div class="code-block">
+      <div class="code-header">
+        <span class="file-name">dbt/profiles.yml</span>
+        <div style="display:flex;gap:.5rem;align-items:center;">
+          <span class="lang-tag">yaml</span>
+          <button class="copy-btn" onclick="copyCode(this)">コピー</button>
+        </div>
+      </div>
+      <pre><code class="language-yaml">modern_data_stack:
+  target: dev
+  outputs:
+    dev:
+      type: trino
+      method: none        # 認証なし（開発環境）
+      host: localhost
+      port: 8080
+      user: trino
+      database: iceberg   # Iceberg カタログを使用
+      schema: dwh         # デフォルトスキーマ（+schema で上書きされる）
+      threads: 4</code></pre>
+    </div>
+
+    <h3>macros/generate_schema_name.sql</h3>
+    <p>デフォルトでは dbt は <code>{target_schema}_{custom_schema}</code> のようなスキーマ名を生成します。このマクロで <code>+schema</code> の値をそのまま使うよう変更します。</p>
+    <div class="code-block">
+      <div class="code-header">
+        <span class="file-name">dbt/macros/generate_schema_name.sql</span>
+        <div style="display:flex;gap:.5rem;align-items:center;">
+          <span class="lang-tag">sql</span>
+          <button class="copy-btn" onclick="copyCode(this)">コピー</button>
+        </div>
+      </div>
+      <pre><code class="language-sql">-- +schema に指定した名前をそのままスキーマ名として使用するマクロ
+{% macro generate_schema_name(custom_schema_name, node) -%}
+    {%- if custom_schema_name is none -%}
+        {{ target.schema }}
+    {%- else -%}
+        {{ custom_schema_name | trim }}
+    {%- endif -%}
+{%- endmacro %}</code></pre>
+    </div>
+
+    <h3>models/sources.yml</h3>
+    <p>Python スクリプトが作成した Raw テーブルを dbt の <strong>ソース</strong> として定義します。dbt モデルから <code>{{ source('raw', 'customers') }}</code> で参照できるようになります。</p>
+    <div class="code-block">
+      <div class="code-header">
+        <span class="file-name">dbt/models/sources.yml</span>
+        <div style="display:flex;gap:.5rem;align-items:center;">
+          <span class="lang-tag">yaml</span>
+          <button class="copy-btn" onclick="copyCode(this)">コピー</button>
+        </div>
+      </div>
+      <pre><code class="language-yaml">version: 2
+
+sources:
+  - name: raw
+    description: "Python スクリプトで投入した生データ（Iceberg テーブル）"
+    database: iceberg
+    schema: raw
+    tables:
+      - name: customers
+        description: "顧客マスタ（10件）"
+
+      - name: orders
+        description: "注文トランザクション（15件）"
+
+      - name: products
+        description: "商品マスタ（Parquet から生成）"</code></pre>
+    </div>
+
+    <h3>dbt の初期動作確認</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <span class="file-name">Terminal</span>
+        <div style="display:flex;gap:.5rem;align-items:center;">
+          <span class="lang-tag">bash</span>
+          <button class="copy-btn" onclick="copyCode(this)">コピー</button>
+        </div>
+      </div>
+      <pre><code class="language-bash">cd dbt
+
+# profiles.yml をカレントディレクトリから読む
+export DBT_PROFILES_DIR=.
+
+# 接続テスト
+dbt debug
+# ...
+# Connection test: [OK connection ok]
+
+# ソース一覧を確認
+dbt ls --select source:*</code></pre>
+    </div>
+  </section>
+
+  <hr>
+
+  <!-- ══════════════════════════════════════════════════
+       STEP 5: datalake 層
+  ══════════════════════════════════════════════════ -->
+  <section class="section" id="step5">
+    <div class="section-header">
+      <div class="step-num">5</div>
+      <h2>datalake 層モデル</h2>
+    </div>
+
+    <div class="layer-badge lb-dl">🏞️ datalake</div>
+    <p>Raw ソースから Iceberg テーブルとしてコピーします。<strong>データの形式変換（型キャスト）</strong> を最小限行うレイヤーです。メダリオンアーキテクチャの Bronze → Silver に相当します。</p>
+
+    <h3>models/datalake/dl_customers.sql</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <span class="file-name">dbt/models/datalake/dl_customers.sql</span>
+        <div style="display:flex;gap:.5rem;align-items:center;">
+          <span class="lang-tag">sql</span>
+          <button class="copy-btn" onclick="copyCode(this)">コピー</button>
+        </div>
+      </div>
+      <pre><code class="language-sql">-- datalake層: ソースをそのまま Iceberg テーブルに格納
+-- 軽微な型変換のみ実施
+SELECT
+    customer_id,
+    customer_name,
+    email,
+    city,
+    segment,
+    TRY_CAST(created_at AS DATE) AS created_at
+FROM {{ source('raw', 'customers') }}</code></pre>
+    </div>
+
+    <h3>models/datalake/dl_orders.sql</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <span class="file-name">dbt/models/datalake/dl_orders.sql</span>
+        <div style="display:flex;gap:.5rem;align-items:center;">
+          <span class="lang-tag">sql</span>
+          <button class="copy-btn" onclick="copyCode(this)">コピー</button>
+        </div>
+      </div>
+      <pre><code class="language-sql">SELECT
+    order_id,
+    customer_id,
+    product_id,
+    TRY_CAST(order_date AS DATE) AS order_date,
+    quantity,
+    unit_price,
+    status,
+    total_amount
+FROM {{ source('raw', 'orders') }}</code></pre>
+    </div>
+
+    <h3>models/datalake/dl_products.sql</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <span class="file-name">dbt/models/datalake/dl_products.sql</span>
+        <div style="display:flex;gap:.5rem;align-items:center;">
+          <span class="lang-tag">sql</span>
+          <button class="copy-btn" onclick="copyCode(this)">コピー</button>
+        </div>
+      </div>
+      <pre><code class="language-sql">SELECT
+    product_id,
+    product_name,
+    category,
+    price,
+    stock_quantity,
+    TRY_CAST(created_at AS DATE) AS created_at
+FROM {{ source('raw', 'products') }}</code></pre>
+    </div>
+
+    <h3>models/datalake/schema.yml</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <span class="file-name">dbt/models/datalake/schema.yml</span>
+        <div style="display:flex;gap:.5rem;align-items:center;">
+          <span class="lang-tag">yaml</span>
+          <button class="copy-btn" onclick="copyCode(this)">コピー</button>
+        </div>
+      </div>
+      <pre><code class="language-yaml">version: 2
+
+models:
+  - name: dl_customers
+    description: "datalake層 - 顧客マスタ（型変換済み）"
+    columns:
+      - name: customer_id
+        description: "顧客ID（主キー）"
+      - name: created_at
+        description: "DATE 型に変換した登録日"
+
+  - name: dl_orders
+    description: "datalake層 - 注文データ（DATE型変換済み）"
+    columns:
+      - name: order_id
+        description: "注文ID（主キー）"
+
+  - name: dl_products
+    description: "datalake層 - 商品マスタ（Parquet由来、DATE型変換済み）"
+    columns:
+      - name: product_id
+        description: "商品ID（主キー）"</code></pre>
+    </div>
+
+    <h3>datalake 層を実行</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <span class="file-name">Terminal</span>
+        <div style="display:flex;gap:.5rem;align-items:center;">
+          <span class="lang-tag">bash</span>
+          <button class="copy-btn" onclick="copyCode(this)">コピー</button>
+        </div>
+      </div>
+      <pre><code class="language-bash">dbt run --select datalake
+# Running with dbt=1.8.x
+# Concurrency: 4 threads
+# 1 of 3 START table model datalake.dl_customers ........... [RUN]
+# 1 of 3 OK    table model datalake.dl_customers ........... [SUCCESS]
+# 2 of 3 START table model datalake.dl_orders .............. [RUN]
+# 2 of 3 OK    table model datalake.dl_orders .............. [SUCCESS]
+# 3 of 3 START table model datalake.dl_products ............ [RUN]
+# 3 of 3 OK    table model datalake.dl_products ............ [SUCCESS]</code></pre>
+    </div>
+  </section>
+
+  <hr>
+
+  <!-- ══════════════════════════════════════════════════
+       STEP 6: dwh 層
+  ══════════════════════════════════════════════════ -->
+  <section class="section" id="step6">
+    <div class="section-header">
+      <div class="step-num">6</div>
+      <h2>dwh 層モデル（ステージング）</h2>
+    </div>
+
+    <div class="layer-badge lb-dwh">🏛️ dwh</div>
+    <p>datalake 層のデータを参照し、<strong>ビジネスロジック適用・クレンジング</strong> を行います。計算カラムの追加やフラグ化を実施します。</p>
+
+    <h3>models/dwh/stg_customers.sql</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <span class="file-name">dbt/models/dwh/stg_customers.sql</span>
+        <div style="display:flex;gap:.5rem;align-items:center;">
+          <span class="lang-tag">sql</span>
+          <button class="copy-btn" onclick="copyCode(this)">コピー</button>
+        </div>
+      </div>
+      <pre><code class="language-sql">WITH source AS (
+    SELECT * FROM {{ ref('dl_customers') }}
+)
+
+SELECT
+    customer_id,
+    customer_name,
+    LOWER(email)  AS email,       -- メールアドレスを小文字に統一
+    city,
+    segment,
+    created_at,
+    -- プレミアム顧客フラグ
+    CASE WHEN segment = 'プレミアム' THEN TRUE ELSE FALSE END AS is_premium
+FROM source</code></pre>
+    </div>
+
+    <h3>models/dwh/stg_orders.sql</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <span class="file-name">dbt/models/dwh/stg_orders.sql</span>
+        <div style="display:flex;gap:.5rem;align-items:center;">
+          <span class="lang-tag">sql</span>
+          <button class="copy-btn" onclick="copyCode(this)">コピー</button>
+        </div>
+      </div>
+      <pre><code class="language-sql">WITH source AS (
+    SELECT * FROM {{ ref('dl_orders') }}
+)
+
+SELECT
+    order_id,
+    customer_id,
+    product_id,
+    order_date,
+    quantity,
+    unit_price,
+    total_amount,
+    status,
+    -- 完了注文フラグ
+    CASE WHEN status = 'completed' THEN TRUE ELSE FALSE END AS is_completed
+FROM source</code></pre>
+    </div>
+
+    <h3>models/dwh/stg_products.sql</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <span class="file-name">dbt/models/dwh/stg_products.sql</span>
+        <div style="display:flex;gap:.5rem;align-items:center;">
+          <span class="lang-tag">sql</span>
+          <button class="copy-btn" onclick="copyCode(this)">コピー</button>
+        </div>
+      </div>
+      <pre><code class="language-sql">WITH source AS (
+    SELECT * FROM {{ ref('dl_products') }}
+)
+
+SELECT
+    product_id,
+    product_name,
+    category,
+    price,
+    stock_quantity,
+    created_at,
+    -- 高額商品フラグ（10,000円以上）
+    CASE WHEN price >= 10000 THEN TRUE ELSE FALSE END AS is_high_value
+FROM source</code></pre>
+    </div>
+
+    <h3>models/dwh/schema.yml（テスト定義付き）</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <span class="file-name">dbt/models/dwh/schema.yml</span>
+        <div style="display:flex;gap:.5rem;align-items:center;">
+          <span class="lang-tag">yaml</span>
+          <button class="copy-btn" onclick="copyCode(this)">コピー</button>
+        </div>
+      </div>
+      <pre><code class="language-yaml">version: 2
+
+models:
+  - name: stg_customers
+    description: "dwh層 - クレンジング済み顧客データ（メール小文字化・プレミアムフラグ追加）"
+    columns:
+      - name: customer_id
+        description: "顧客ID（主キー）"
+        data_tests:
+          - unique
+          - not_null
+      - name: email
+        description: "小文字変換済みメールアドレス"
+        data_tests:
+          - not_null
+      - name: segment
+        description: "顧客セグメント"
+        data_tests:
+          - accepted_values:
+              values: ['プレミアム', 'スタンダード']
+
+  - name: stg_orders
+    description: "dwh層 - クレンジング済み注文データ（完了フラグ追加）"
+    columns:
+      - name: order_id
+        description: "注文ID（主キー）"
+        data_tests:
+          - unique
+          - not_null
+      - name: customer_id
+        description: "顧客ID（外部キー）"
+        data_tests:
+          - not_null
+          - relationships:
+              to: ref('stg_customers')
+              field: customer_id
+      - name: total_amount
+        description: "合計金額"
+        data_tests:
+          - not_null
+      - name: status
+        data_tests:
+          - accepted_values:
+              values: ['completed', 'shipped', 'pending', 'cancelled']
+
+  - name: stg_products
+    description: "dwh層 - クレンジング済み商品データ（高額フラグ追加）"
+    columns:
+      - name: product_id
+        description: "商品ID（主キー）"
+        data_tests:
+          - unique
+          - not_null</code></pre>
+    </div>
+
+    <h3>dwh 層を実行</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <span class="file-name">Terminal</span>
+        <div style="display:flex;gap:.5rem;align-items:center;">
+          <span class="lang-tag">bash</span>
+          <button class="copy-btn" onclick="copyCode(this)">コピー</button>
+        </div>
+      </div>
+      <pre><code class="language-bash">dbt run --select dwh
+# 3 of 3 OK    stg_customers, stg_orders, stg_products ... [SUCCESS]
+
+# 確認（Trino CLI）
+docker exec -it trino trino
+trino> SELECT customer_name, email, is_premium FROM iceberg.dwh.stg_customers LIMIT 5;</code></pre>
+    </div>
+  </section>
+
+  <hr>
+
+  <!-- ══════════════════════════════════════════════════
+       STEP 7: mart 層
+  ══════════════════════════════════════════════════ -->
+  <section class="section" id="step7">
+    <div class="section-header">
+      <div class="step-num">7</div>
+      <h2>mart 層モデル（分析用集計）</h2>
+    </div>
+
+    <div class="layer-badge lb-mart">🏪 mart</div>
+    <p>dwh 層のデータを結合・集計し、BI ツールやレポートが直接クエリできる形に加工します。</p>
+
+    <h3>models/mart/mart_sales_summary.sql</h3>
+    <p>カテゴリ別・ステータス別の売上サマリーテーブルです。</p>
+    <div class="code-block">
+      <div class="code-header">
+        <span class="file-name">dbt/models/mart/mart_sales_summary.sql</span>
+        <div style="display:flex;gap:.5rem;align-items:center;">
+          <span class="lang-tag">sql</span>
+          <button class="copy-btn" onclick="copyCode(this)">コピー</button>
+        </div>
+      </div>
+      <pre><code class="language-sql">{{
+  config(
+    materialized = 'table',
+    properties = {
+      "format": "'PARQUET'",
+      "partitioning": "ARRAY['status']"
+    }
+  )
+}}
+
+-- mart層: カテゴリ別・ステータス別の売上サマリー
+WITH orders AS (
+    SELECT * FROM {{ ref('stg_orders') }}
+),
+
+products AS (
+    SELECT * FROM {{ ref('stg_products') }}
+),
+
+joined AS (
+    SELECT
+        o.order_date,
+        date_format(CAST(o.order_date AS TIMESTAMP), '%Y-%m')  AS order_month,
+        p.category,
+        o.status,
+        COUNT(o.order_id)         AS order_count,
+        SUM(o.total_amount)       AS total_revenue,
+        AVG(o.total_amount)       AS avg_order_value
+    FROM orders o
+    LEFT JOIN products p ON o.product_id = p.product_id
+    GROUP BY 1, 2, 3, 4
+)
+
+SELECT * FROM joined</code></pre>
+    </div>
+
+    <h3>models/mart/mart_customer_ltv.sql</h3>
+    <p>顧客ライフタイムバリュー（LTV）分析テーブルです。完了済み注文のみを対象に集計します。</p>
+    <div class="code-block">
+      <div class="code-header">
+        <span class="file-name">dbt/models/mart/mart_customer_ltv.sql</span>
+        <div style="display:flex;gap:.5rem;align-items:center;">
+          <span class="lang-tag">sql</span>
+          <button class="copy-btn" onclick="copyCode(this)">コピー</button>
+        </div>
+      </div>
+      <pre><code class="language-sql">-- mart層: 顧客ライフタイムバリュー分析
+WITH orders AS (
+    SELECT * FROM {{ ref('stg_orders') }}
+),
+
+customers AS (
+    SELECT * FROM {{ ref('stg_customers') }}
+),
+
+-- 完了済み注文のみ集計
+completed_orders AS (
+    SELECT
+        customer_id,
+        COUNT(order_id)       AS total_orders,
+        SUM(total_amount)     AS total_spend,
+        AVG(total_amount)     AS avg_order_value,
+        MIN(order_date)       AS first_order_date,
+        MAX(order_date)       AS last_order_date
+    FROM orders
+    WHERE is_completed = TRUE
+    GROUP BY customer_id
+),
+
+final AS (
+    SELECT
+        c.customer_id,
+        c.customer_name,
+        c.city,
+        c.segment,
+        c.is_premium,
+        COALESCE(co.total_orders, 0)    AS total_orders,
+        COALESCE(co.total_spend, 0.0)   AS lifetime_value,
+        co.avg_order_value,
+        co.first_order_date,
+        co.last_order_date,
+        -- アクティブ期間（日数）
+        CASE
+            WHEN co.first_order_date IS NOT NULL
+             AND co.last_order_date  IS NOT NULL
+            THEN date_diff('day', co.first_order_date, co.last_order_date)
+            ELSE 0
+        END AS days_active
+    FROM customers c
+    LEFT JOIN completed_orders co ON c.customer_id = co.customer_id
+)
+
+SELECT * FROM final</code></pre>
+    </div>
+
+    <h3>models/mart/schema.yml</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <span class="file-name">dbt/models/mart/schema.yml</span>
+        <div style="display:flex;gap:.5rem;align-items:center;">
+          <span class="lang-tag">yaml</span>
+          <button class="copy-btn" onclick="copyCode(this)">コピー</button>
+        </div>
+      </div>
+      <pre><code class="language-yaml">version: 2
+
+models:
+  - name: mart_sales_summary
+    description: "カテゴリ・ステータス別の月次売上サマリー（status パーティション）"
+    columns:
+      - name: order_date
+        data_tests: [not_null]
+      - name: total_revenue
+        data_tests: [not_null]
+      - name: order_count
+        data_tests: [not_null]
+
+  - name: mart_customer_ltv
+    description: "顧客ライフタイムバリュー分析（完了注文ベース）"
+    columns:
+      - name: customer_id
+        data_tests:
+          - unique
+          - not_null
+      - name: lifetime_value
+        data_tests: [not_null]</code></pre>
+    </div>
+
+    <h3>mart 層を実行（全レイヤー一括も可）</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <span class="file-name">Terminal</span>
+        <div style="display:flex;gap:.5rem;align-items:center;">
+          <span class="lang-tag">bash</span>
+          <button class="copy-btn" onclick="copyCode(this)">コピー</button>
+        </div>
+      </div>
+      <pre><code class="language-bash"># mart 層のみ実行
+dbt run --select mart
+
+# または全レイヤーを一括実行
+dbt run
+
+# 結果確認（Trino CLI）
+docker exec -it trino trino
+trino> SELECT * FROM iceberg.mart.mart_sales_summary ORDER BY order_date;
+trino> SELECT customer_name, lifetime_value, total_orders
+       FROM iceberg.mart.mart_customer_ltv
+       ORDER BY lifetime_value DESC;</code></pre>
+    </div>
+  </section>
+
+  <hr>
+
+  <!-- ══════════════════════════════════════════════════
+       STEP 8: テスト
+  ══════════════════════════════════════════════════ -->
+  <section class="section" id="step8">
+    <div class="section-header">
+      <div class="step-num">8</div>
+      <h2>dbt テスト</h2>
+    </div>
+
+    <p>dbt には2種類のテストがあります。</p>
+    <div class="grid-2">
+      <div class="card">
+        <h4 style="margin-top:0;">📋 汎用テスト（Generic Tests）</h4>
+        <p>schema.yml で宣言的に設定するテストです。</p>
+        <ul style="font-size:0.88rem;padding-left:1.2rem;">
+          <li><code>unique</code> — 重複なし</li>
+          <li><code>not_null</code> — NULL なし</li>
+          <li><code>accepted_values</code> — 許容値の確認</li>
+          <li><code>relationships</code> — 外部キー整合性</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h4 style="margin-top:0;">🔍 カスタムテスト（Singular Tests）</h4>
+        <p><code>tests/</code> ディレクトリに SQL ファイルを置きます。</p>
+        <p style="font-size:0.88rem;">クエリが<strong>1行以上を返すとテスト失敗</strong>という仕組みです。複雑なビジネスロジックを検証できます。</p>
+      </div>
+    </div>
+
+    <h3>tests/assert_no_negative_amount.sql</h3>
+    <p>合計金額が負値になっていないことを確認するカスタムテストです。</p>
+    <div class="code-block">
+      <div class="code-header">
+        <span class="file-name">dbt/tests/assert_no_negative_amount.sql</span>
+        <div style="display:flex;gap:.5rem;align-items:center;">
+          <span class="lang-tag">sql</span>
+          <button class="copy-btn" onclick="copyCode(this)">コピー</button>
+        </div>
+      </div>
+      <pre><code class="language-sql">-- カスタムテスト: 合計金額が負の値でないことを確認
+-- このクエリが 1行以上を返すとテスト失敗（異常データあり）
+SELECT
+    order_id,
+    total_amount
+FROM {{ ref('stg_orders') }}
+WHERE total_amount < 0</code></pre>
+    </div>
+
+    <h3>テストを実行する</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <span class="file-name">Terminal</span>
+        <div style="display:flex;gap:.5rem;align-items:center;">
+          <span class="lang-tag">bash</span>
+          <button class="copy-btn" onclick="copyCode(this)">コピー</button>
+        </div>
+      </div>
+      <pre><code class="language-bash"># 全テストを実行
+dbt test
+
+# 特定レイヤーのみ
+dbt test --select dwh
+
+# 特定テスト種別のみ
+dbt test --select test_type:generic
+dbt test --select test_type:singular
+
+# モデルのビルド＋テストを一度に実行
+dbt build</code></pre>
+    </div>
+
+    <div class="callout callout-tip">
+      <div class="callout-title">✅ 期待されるテスト出力</div>
+      <p><code>dbt test</code> を実行すると、dwh 層の schema.yml に定義した <code>unique</code>、<code>not_null</code>、<code>accepted_values</code>、<code>relationships</code>、そして <code>assert_no_negative_amount</code> のカスタムテストが実行されます。サンプルデータが正常であれば全テスト PASS となります。</p>
+    </div>
+
+    <h3>テスト結果の読み方</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <span class="file-name">期待される出力例</span>
+        <div style="display:flex;gap:.5rem;align-items:center;">
+          <span class="lang-tag">bash</span>
+          <button class="copy-btn" onclick="copyCode(this)">コピー</button>
+        </div>
+      </div>
+      <pre><code class="language-bash">Running with dbt=1.8.x
+Found 9 models, 15 tests, 3 sources
+
+Concurrency: 4 threads
+
+1 of 15 START test not_null_stg_customers_customer_id ... [RUN]
+1 of 15 PASS  not_null_stg_customers_customer_id ...      [PASS in 0.5s]
+2 of 15 START test unique_stg_customers_customer_id ..... [RUN]
+2 of 15 PASS  unique_stg_customers_customer_id .......... [PASS in 0.4s]
+...
+15 of 15 PASS assert_no_negative_amount .................. [PASS in 0.3s]
+
+Finished running 15 tests in X.Xs.
+All 15 tests passed.</code></pre>
+    </div>
+  </section>
+
+  <hr>
+
+  <!-- ══════════════════════════════════════════════════
+       STEP 9: ドキュメント生成
+  ══════════════════════════════════════════════════ -->
+  <section class="section" id="step9">
+    <div class="section-header">
+      <div class="step-num">9</div>
+      <h2>dbt ドキュメント生成</h2>
+    </div>
+
+    <p>dbt には、モデルの定義・テスト・依存関係を自動的に Web ドキュメントに変換する機能があります。</p>
+
+    <div class="code-block">
+      <div class="code-header">
+        <span class="file-name">Terminal</span>
+        <div style="display:flex;gap:.5rem;align-items:center;">
+          <span class="lang-tag">bash</span>
+          <button class="copy-btn" onclick="copyCode(this)">コピー</button>
+        </div>
+      </div>
+      <pre><code class="language-bash"># カタログを含むドキュメントを生成
+dbt docs generate
+
+# ローカルサーバーを起動（ブラウザで確認）
+dbt docs serve --port 8888
+# → http://localhost:8888 をブラウザで開く</code></pre>
+    </div>
+
+    <div class="card">
+      <h4 style="margin-top:0;">📖 ドキュメントサイトで確認できること</h4>
+      <div class="grid-2" style="margin:0;">
+        <div>
+          <p><strong>📊 データリネージュ（Lineage Graph）</strong></p>
+          <p style="font-size:0.85rem;">左下の「Lineage Graph」タブで、ソースから mart 層まで全モデルの依存関係を視覚的に確認できます。</p>
+        </div>
+        <div>
+          <p><strong>📋 モデル詳細</strong></p>
+          <p style="font-size:0.85rem;">各モデルのカラム説明、テスト定義、実行された SQL を確認できます。</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="callout callout-tip">
+      <div class="callout-title">💡 データリネージュの確認方法</div>
+      <p>ドキュメントサイトの左パネルから任意のモデルを選択 → 右下の「Lineage Graph」をクリックすると、<code>raw.customers</code> → <code>dl_customers</code> → <code>stg_customers</code> → <code>mart_customer_ltv</code> のような全体の依存グラフが表示されます。</p>
+    </div>
+  </section>
+
+  <hr>
+
+  <!-- ══════════════════════════════════════════════════
+       STEP 10: Semantic Layer
+  ══════════════════════════════════════════════════ -->
+  <section class="section" id="step10">
+    <div class="section-header">
+      <div class="step-num">10</div>
+      <h2>dbt Semantic Layer（MetricFlow）</h2>
+    </div>
+
+    <p>dbt 1.6+ に統合された <strong>MetricFlow</strong> は、<em>ビジネス指標をコードで定義</em>し、一貫したメトリクスを提供します。「どのテーブルを JOIN するか」「どう集計するか」をセマンティックモデルとして記述することで、BI ツールや分析者が同じ定義のメトリクスを利用できます。</p>
+
+    <div class="summary-box">
+      <h4>🔑 Semantic Layer の3つの構成要素</h4>
+      <div class="grid-3" style="margin:0;">
+        <div>
+          <p><strong>エンティティ (Entities)</strong></p>
+          <p style="font-size:0.83rem;">テーブルの主キー・外部キーを定義</p>
+        </div>
+        <div>
+          <p><strong>ディメンション (Dimensions)</strong></p>
+          <p style="font-size:0.83rem;">グループ化に使う列（時間・カテゴリ）</p>
+        </div>
+        <div>
+          <p><strong>メジャー (Measures)</strong></p>
+          <p style="font-size:0.83rem;">集計する値（SUM/COUNT/AVG）</p>
+        </div>
+      </div>
+    </div>
+
+    <h3>models/mart/mart_metrics.yml</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <span class="file-name">dbt/models/mart/mart_metrics.yml</span>
+        <div style="display:flex;gap:.5rem;align-items:center;">
+          <span class="lang-tag">yaml</span>
+          <button class="copy-btn" onclick="copyCode(this)">コピー</button>
+        </div>
+      </div>
+      <pre><code class="language-yaml">semantic_models:
+  - name: orders
+    description: "注文データのセマンティックモデル"
+    model: ref('stg_orders')
+    defaults:
+      agg_time_dimension: order_date
+
+    # ── エンティティ ────────────────────────────────────
+    entities:
+      - name: order
+        type: primary
+        expr: order_id
+      - name: customer
+        type: foreign
+        expr: customer_id
+
+    # ── ディメンション ──────────────────────────────────
+    dimensions:
+      - name: order_date
+        type: time
+        type_params:
+          time_granularity: day
+      - name: status
+        type: categorical
+      - name: is_completed
+        type: categorical
+
+    # ── メジャー ────────────────────────────────────────
+    measures:
+      - name: order_count
+        description: "注文件数"
+        agg: count
+        expr: order_id
+      - name: total_revenue
+        description: "売上合計"
+        agg: sum
+        expr: total_amount
+      - name: avg_order_value
+        description: "平均注文金額"
+        agg: average
+        expr: total_amount
+
+# ── メトリクス定義 ────────────────────────────────────
+metrics:
+  - name: total_revenue
+    label: "売上合計"
+    description: "全注文の売上合計金額"
+    type: simple
+    type_params:
+      measure: total_revenue
+
+  - name: order_count
+    label: "注文件数"
+    description: "全注文件数"
+    type: simple
+    type_params:
+      measure: order_count
+
+  - name: revenue_per_order
+    label: "1注文あたり売上"
+    description: "1件あたりの平均売上金額（Ratio メトリクス）"
+    type: ratio
+    type_params:
+      numerator: total_revenue
+      denominator: order_count</code></pre>
+    </div>
+
+    <h3>Semantic Layer を操作する</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <span class="file-name">Terminal — MetricFlow コマンド</span>
+        <div style="display:flex;gap:.5rem;align-items:center;">
+          <span class="lang-tag">bash</span>
+          <button class="copy-btn" onclick="copyCode(this)">コピー</button>
+        </div>
+      </div>
+      <pre><code class="language-bash"># 定義したメトリクス一覧を表示
+dbt sl list metrics
+
+# 出力例:
+# ┌─────────────────────┬────────────────────────┐
+# │ Name                │ Label                  │
+# ├─────────────────────┼────────────────────────┤
+# │ total_revenue       │ 売上合計               │
+# │ order_count         │ 注文件数               │
+# │ revenue_per_order   │ 1注文あたり売上        │
+# └─────────────────────┴────────────────────────┘
+
+# 月別の売上合計を照会
+dbt sl query --metrics total_revenue --group-by metric_time__month
+
+# 出力例:
+# metric_time__month  total_revenue
+# 2024-04             231500
+
+# 月別・ステータス別の注文件数
+dbt sl query --metrics order_count --group-by metric_time__month,status
+
+# 1注文あたり売上（Ratio メトリクス）
+dbt sl query --metrics revenue_per_order --group-by metric_time__month</code></pre>
+    </div>
+
+    <div class="callout callout-tip">
+      <div class="callout-title">💡 Semantic Layer のメリット</div>
+      <p>同じ「売上合計」をどのチームが計算しても、同じ SQL ロジックが使われます。BI ツール側で個別に集計ロジックを書く必要がなくなり、<strong>メトリクスの定義がコードで一元管理</strong>されます。</p>
+    </div>
+  </section>
+
+  <hr>
+
+  <!-- ══════════════════════════════════════════════════
+       STEP 11: Iceberg 機能
+  ══════════════════════════════════════════════════ -->
+  <section class="section" id="step11">
+    <div class="section-header">
+      <div class="step-num">11</div>
+      <h2>Apache Iceberg の特徴的な機能</h2>
+    </div>
+
+    <p>Iceberg がオープンテーブルフォーマットとして Parquet/CSV などのシンプルなファイルと異なる点を実際に確認します。</p>
+
+    <div class="grid-3">
+      <div class="card" style="padding:1rem;">
+        <h4 style="margin-top:0;">🕐 タイムトラベル</h4>
+        <p style="font-size:0.83rem;">過去の任意のスナップショットを参照できます</p>
+      </div>
+      <div class="card" style="padding:1rem;">
+        <h4 style="margin-top:0;">🔄 スキーマ進化</h4>
+        <p style="font-size:0.83rem;">テーブルの列追加・削除が安全に行えます</p>
+      </div>
+      <div class="card" style="padding:1rem;">
+        <h4 style="margin-top:0;">📜 テーブル履歴</h4>
+        <p style="font-size:0.83rem;">スナップショット一覧で変更履歴を追跡できます</p>
+      </div>
+    </div>
+
+    <h3>① テーブル履歴・スナップショット確認</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <span class="file-name">Trino CLI</span>
+        <div style="display:flex;gap:.5rem;align-items:center;">
+          <span class="lang-tag">sql</span>
+          <button class="copy-btn" onclick="copyCode(this)">コピー</button>
+        </div>
+      </div>
+      <pre><code class="language-sql">-- テーブルのスナップショット履歴を確認
+SELECT snapshot_id, committed_at, operation, summary
+FROM iceberg.dwh."stg_orders$snapshots"
+ORDER BY committed_at;
+
+-- テーブル変更ログ（ファイルレベルの変更）
+SELECT *
+FROM iceberg.dwh."stg_orders$history";</code></pre>
+    </div>
+
+    <h3>② タイムトラベル（過去データを参照）</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <span class="file-name">Trino CLI</span>
+        <div style="display:flex;gap:.5rem;align-items:center;">
+          <span class="lang-tag">sql</span>
+          <button class="copy-btn" onclick="copyCode(this)">コピー</button>
+        </div>
+      </div>
+      <pre><code class="language-sql">-- ① 現在の snapshot_id を確認
+SELECT snapshot_id, committed_at
+FROM iceberg.dwh."stg_orders$snapshots"
+ORDER BY committed_at;
+
+-- ② データを更新（新しいスナップショットを作成）
+--    例: dbt run --select mart を再実行してスナップショットを増やす
+
+-- ③ 特定のスナップショット時点のデータを参照
+SELECT COUNT(*) FROM iceberg.mart.mart_customer_ltv
+FOR VERSION AS OF &lt;snapshot_id&gt;;    -- snapshot_id を①の値で置換
+
+-- ④ 特定の日時時点のデータを参照
+SELECT COUNT(*) FROM iceberg.mart.mart_customer_ltv
+FOR TIMESTAMP AS OF TIMESTAMP '2024-04-30 00:00:00 UTC';</code></pre>
+    </div>
+
+    <h3>③ スキーマ進化（列の追加・削除）</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <span class="file-name">Trino CLI</span>
+        <div style="display:flex;gap:.5rem;align-items:center;">
+          <span class="lang-tag">sql</span>
+          <button class="copy-btn" onclick="copyCode(this)">コピー</button>
+        </div>
+      </div>
+      <pre><code class="language-sql">-- 列を追加
+ALTER TABLE iceberg.dwh.stg_orders
+ADD COLUMN discount DECIMAL(10, 2);
+
+-- 列が追加されたことを確認
+DESCRIBE iceberg.dwh.stg_orders;
+
+-- 追加した列は既存データには NULL として扱われる
+SELECT order_id, total_amount, discount
+FROM iceberg.dwh.stg_orders
+LIMIT 3;
+
+-- 不要な列を削除
+ALTER TABLE iceberg.dwh.stg_orders
+DROP COLUMN discount;</code></pre>
+    </div>
+
+    <h3>④ ファイル管理情報の確認</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <span class="file-name">Trino CLI</span>
+        <div style="display:flex;gap:.5rem;align-items:center;">
+          <span class="lang-tag">sql</span>
+          <button class="copy-btn" onclick="copyCode(this)">コピー</button>
+        </div>
+      </div>
+      <pre><code class="language-sql">-- テーブルが保存している Parquet ファイル情報
+SELECT file_path, record_count, file_size_in_bytes
+FROM iceberg.mart."mart_sales_summary$files";
+
+-- テーブルのパーティション情報（status でパーティション）
+SELECT * FROM iceberg.mart."mart_sales_summary$partitions";</code></pre>
+    </div>
+
+    <div class="callout callout-tip">
+      <div class="callout-title">🧊 なぜ Iceberg なのか？</div>
+      <p>従来の Parquet/CSV ファイルはただのファイルに過ぎませんが、Iceberg は <strong>メタデータレイヤー</strong> を持ちます。これにより「ファイルを書き換えることなく列を追加」「過去のデータを参照」「複数プロセスからの同時書き込みを安全に制御」が可能になります。実データはそのまま Parquet ファイルとして MinIO に保存されています。</p>
+    </div>
+  </section>
+
+  <hr>
+
+  <!-- ══════════════════════════════════════════════════
+       SUMMARY
+  ══════════════════════════════════════════════════ -->
+  <section class="section" id="summary">
+    <div class="section-header">
+      <div style="width:2rem;height:2rem;background:#553c9a;border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-size:1rem;flex-shrink:0;">🎓</div>
+      <h2>まとめ</h2>
+    </div>
+
+    <div class="summary-box">
+      <h4>✅ このガイドで習得したこと</h4>
+      <div class="grid-2" style="margin:0.5rem 0 0;">
+        <div>
+          <p><strong>🐳 インフラ構築</strong></p>
+          <ul class="check" style="font-size:0.85rem;">
+            <li>Docker Compose による MDS 環境</li>
+            <li>MinIO (S3互換) オブジェクトストレージ</li>
+            <li>Iceberg REST Catalog</li>
+            <li>Trino 分散クエリエンジン</li>
+          </ul>
+        </div>
+        <div>
+          <p><strong>🔧 dbt パイプライン</strong></p>
+          <ul class="check" style="font-size:0.85rem;">
+            <li>datalake → dwh → mart の3層構造</li>
+            <li>汎用テスト＋カスタムテスト</li>
+            <li>自動ドキュメント生成</li>
+            <li>Semantic Layer (MetricFlow)</li>
+          </ul>
+        </div>
+        <div>
+          <p><strong>🧊 Iceberg 活用</strong></p>
+          <ul class="check" style="font-size:0.85rem;">
+            <li>オープンテーブルフォーマットの概念</li>
+            <li>タイムトラベル（履歴参照）</li>
+            <li>スキーマ進化</li>
+            <li>スナップショット管理</li>
+          </ul>
+        </div>
+        <div>
+          <p><strong>🐍 Python データ取り込み</strong></p>
+          <ul class="check" style="font-size:0.85rem;">
+            <li>CSV / Parquet の生成と読み込み</li>
+            <li>Trino Python クライアント活用</li>
+            <li>Iceberg テーブルへのバルク投入</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <h3>📚 次のステップ</h3>
+    <div class="card">
+      <table style="margin:0;">
+        <thead><tr><th>テーマ</th><th>発展内容</th></tr></thead>
+        <tbody>
+          <tr><td>dbt Snapshots</td><td>SCD Type 2 による履歴データ管理</td></tr>
+          <tr><td>dbt Cloud</td><td>スケジュール実行・監視・CI/CD</td></tr>
+          <tr><td>Iceberg Merge-on-Read</td><td>更新・削除の最適化</td></tr>
+          <tr><td>Apache Flink + Iceberg</td><td>ストリーミングデータの取り込み</td></tr>
+          <tr><td>PyIceberg</td><td>Python から直接 Iceberg を操作</td></tr>
+          <tr><td>Nessie カタログ</td><td>Git ライクなデータバージョニング</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>🔧 全工程まとめコマンド</h3>
+    <div class="code-block">
+      <div class="code-header">
+        <span class="file-name">Terminal — ゼロから全実行</span>
+        <div style="display:flex;gap:.5rem;align-items:center;">
+          <span class="lang-tag">bash</span>
+          <button class="copy-btn" onclick="copyCode(this)">コピー</button>
+        </div>
+      </div>
+      <pre><code class="language-bash"># 1. 環境起動
+docker compose up -d
+
+# 2. サンプルデータ生成
+python scripts/01_generate_data.py
+
+# 3. Iceberg へ取り込み
+python scripts/02_ingest_data.py
+
+# 4. dbt パイプライン実行（全レイヤー）
+cd dbt && export DBT_PROFILES_DIR=.
+dbt run
+
+# 5. テスト実行
+dbt test
+
+# 6. ドキュメント生成・確認
+dbt docs generate && dbt docs serve
+
+# 7. Semantic Layer でメトリクス確認
+dbt sl list metrics
+dbt sl query --metrics total_revenue --group-by metric_time__month
+
+# 8. 環境停止
+docker compose down</code></pre>
+    </div>
+
+    <div style="background:linear-gradient(135deg,#1a202c,#2d3748);border-radius:var(--radius);padding:1.5rem;color:white;text-align:center;margin-top:1.5rem;">
+      <p style="font-size:1.1rem;font-weight:700;color:#63b3ed;margin:0;">🎉 モダンデータスタック実践ガイド — 完</p>
+      <p style="color:#a0aec0;font-size:0.85rem;margin:0.5rem 0 0;">dbt × Apache Iceberg × Trino × MinIO × Python × Docker</p>
+    </div>
+  </section>
+
+</main>
+
+<script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+// ── コードハイライト ─────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  hljs.highlightAll();
+});
+
+// ── コピーボタン ─────────────────────────────────────────
+function copyCode(btn) {
+  const pre = btn.closest('.code-block').querySelector('pre');
+  const text = pre.innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    const orig = btn.textContent;
+    btn.textContent = '✓ コピー済';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.textContent = orig;
+      btn.classList.remove('copied');
+    }, 2000);
+  });
+}
+
+// ── ナビゲーション アクティブ化 ──────────────────────────
+const sections = document.querySelectorAll('.section');
+const links = document.querySelectorAll('#sidebar a');
+
+function updateActiveLink() {
+  let current = '';
+  sections.forEach(s => {
+    const top = s.getBoundingClientRect().top;
+    if (top <= 80) current = s.id;
+  });
+  links.forEach(l => {
+    l.classList.remove('active');
+    if (l.getAttribute('href') === '#' + current) {
+      l.classList.add('active');
+    }
+  });
+}
+
+window.addEventListener('scroll', updateActiveLink, { passive: true });
+updateActiveLink();
+</script>
+</body>
+</html>
