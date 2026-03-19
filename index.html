@@ -1,144 +1,566 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <title>モダンデータスタック学習教材</title>
-    <style>
-        body { font-family: 'Helvetica Neue', Arial, sans-serif; line-height: 1.6; color: #333; max-width: 900px; margin: 0 auto; padding: 20px; }
-        h1 { border-bottom: 2px solid #333; padding-bottom: 10px; }
-        h2 { border-bottom: 1px solid #ccc; padding-bottom: 5px; margin-top: 40px; }
-        h3 { margin-top: 30px; color: #444; }
-        code { background-color: #f4f4f4; padding: 2px 4px; border-radius: 4px; font-family: 'Courier New', Courier, monospace; }
-        pre { background-color: #f4f4f4; padding: 15px; border-radius: 5px; overflow-x: auto; border: 1px solid #ddd; }
-        pre code { background-color: transparent; padding: 0; }
-        hr { border: 0; border-top: 1px solid #eee; margin: 40px 0; }
-        .note { background-color: #e7f3fe; border-left: 6px solid #2196F3; margin-bottom: 15px; padding: 10px 20px; }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Modern Data Stack ハンズオン教材</title>
+  <style>
+    :root {
+      --bg: #f5efe6;
+      --paper: #fffaf3;
+      --ink: #1f2937;
+      --muted: #5b6472;
+      --line: #d7c7b2;
+      --accent: #b45309;
+      --accent-2: #0f766e;
+      --accent-3: #1d4ed8;
+      --accent-4: #7c2d12;
+      --soft: #f0e1cc;
+      --code: #1b1f24;
+      --code-bg: #fff;
+      --shadow: 0 18px 40px rgba(74, 52, 28, 0.12);
+      --radius: 20px;
+      --mono: "SFMono-Regular", "Consolas", "Menlo", monospace;
+      --sans: "Hiragino Sans", "Yu Gothic", "Noto Sans JP", sans-serif;
+      --serif: "Iowan Old Style", "Palatino Linotype", "Yu Mincho", serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      margin: 0;
+      font-family: var(--sans);
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top left, rgba(180, 83, 9, 0.12), transparent 30%),
+        radial-gradient(circle at right 20%, rgba(15, 118, 110, 0.1), transparent 25%),
+        linear-gradient(180deg, #fbf6ee 0%, var(--bg) 100%);
+      line-height: 1.75;
+    }
+
+    a {
+      color: var(--accent-3);
+    }
+
+    .page {
+      width: min(1180px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 32px 0 64px;
+    }
+
+    .hero {
+      position: relative;
+      overflow: hidden;
+      background: linear-gradient(135deg, rgba(255, 250, 243, 0.98), rgba(249, 235, 214, 0.96));
+      border: 1px solid rgba(183, 145, 94, 0.28);
+      border-radius: 28px;
+      box-shadow: var(--shadow);
+      padding: 44px;
+      margin-bottom: 28px;
+    }
+
+    .hero::after {
+      content: "";
+      position: absolute;
+      right: -80px;
+      top: -80px;
+      width: 280px;
+      height: 280px;
+      background: radial-gradient(circle, rgba(29, 78, 216, 0.15), transparent 70%);
+      border-radius: 50%;
+    }
+
+    .eyebrow {
+      display: inline-block;
+      padding: 6px 12px;
+      border-radius: 999px;
+      background: rgba(180, 83, 9, 0.12);
+      color: var(--accent-4);
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    h1, h2, h3 {
+      margin: 0 0 12px;
+      line-height: 1.2;
+    }
+
+    h1 {
+      font-family: var(--serif);
+      font-size: clamp(2.2rem, 4vw, 4rem);
+      max-width: 11ch;
+      margin-top: 18px;
+    }
+
+    h2 {
+      font-size: clamp(1.5rem, 2.2vw, 2rem);
+      margin-bottom: 16px;
+    }
+
+    h3 {
+      font-size: 1.15rem;
+      margin-top: 12px;
+    }
+
+    p {
+      margin: 0 0 14px;
+      color: var(--ink);
+    }
+
+    .lead {
+      font-size: 1.06rem;
+      max-width: 70ch;
+      color: var(--muted);
+    }
+
+    .quick-links {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 24px;
+    }
+
+    .quick-links a {
+      text-decoration: none;
+      color: var(--ink);
+      border: 1px solid rgba(91, 100, 114, 0.18);
+      background: rgba(255, 255, 255, 0.68);
+      padding: 10px 14px;
+      border-radius: 999px;
+      font-weight: 600;
+    }
+
+    .grid {
+      display: grid;
+      gap: 22px;
+    }
+
+    .grid.two {
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    }
+
+    .section {
+      background: rgba(255, 250, 243, 0.9);
+      border: 1px solid rgba(183, 145, 94, 0.22);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 30px;
+      margin-bottom: 24px;
+    }
+
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+    }
+
+    .card {
+      background: rgba(255, 255, 255, 0.8);
+      border: 1px solid rgba(183, 145, 94, 0.24);
+      border-radius: 18px;
+      padding: 18px;
+    }
+
+    .card strong {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 1rem;
+    }
+
+    .diagram {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+      gap: 14px;
+      margin-top: 18px;
+    }
+
+    .node {
+      border-radius: 18px;
+      padding: 16px;
+      min-height: 130px;
+      color: #111827;
+      border: 1px solid rgba(0, 0, 0, 0.08);
+    }
+
+    .node h3 {
+      margin-bottom: 10px;
+    }
+
+    .node.python { background: #dbeafe; }
+    .node.trino { background: #ede9fe; }
+    .node.iceberg { background: #d1fae5; }
+    .node.minio { background: #fee2e2; }
+    .node.dbt { background: #fef3c7; }
+    .node.pg { background: #ccfbf1; }
+
+    .flow {
+      margin-top: 16px;
+      padding: 18px;
+      border-radius: 18px;
+      background: rgba(240, 225, 204, 0.45);
+      border: 1px dashed rgba(91, 100, 114, 0.28);
+      font-weight: 600;
+      color: var(--accent-4);
+    }
+
+    .step {
+      display: grid;
+      grid-template-columns: 84px 1fr;
+      gap: 18px;
+      padding: 24px 0;
+      border-top: 1px solid rgba(183, 145, 94, 0.24);
+    }
+
+    .step:first-of-type {
+      border-top: none;
+      padding-top: 0;
+    }
+
+    .step-no {
+      width: 64px;
+      height: 64px;
+      border-radius: 20px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, #b45309, #ea580c);
+      color: white;
+      font-weight: 800;
+      font-size: 1.05rem;
+      box-shadow: 0 12px 24px rgba(180, 83, 9, 0.22);
+    }
+
+    .meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 12px 0;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 11px;
+      border-radius: 999px;
+      background: rgba(15, 118, 110, 0.12);
+      color: var(--accent-2);
+      font-size: 0.88rem;
+      font-weight: 700;
+    }
+
+    .notes {
+      display: grid;
+      gap: 12px;
+      margin: 14px 0;
+    }
+
+    .note {
+      background: rgba(255, 255, 255, 0.78);
+      border-left: 4px solid var(--accent);
+      padding: 14px 16px;
+      border-radius: 12px;
+    }
+
+    .why {
+      border-left-color: var(--accent-2);
+    }
+
+    .meaning {
+      border-left-color: var(--accent-3);
+    }
+
+    ul, ol {
+      margin: 0 0 14px 1.2em;
+    }
+
+    code {
+      font-family: var(--mono);
+      background: rgba(27, 31, 36, 0.06);
+      padding: 0.15em 0.35em;
+      border-radius: 6px;
+      font-size: 0.95em;
+    }
+
+    pre {
+      margin: 14px 0;
+      padding: 18px;
+      border-radius: 16px;
+      overflow: auto;
+      background: var(--code-bg);
+      color: var(--code);
+      border: 1px solid rgba(27, 31, 36, 0.08);
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+    }
+
+    pre code {
+      background: transparent;
+      padding: 0;
+      border-radius: 0;
+    }
+
+    .callout {
+      padding: 18px 20px;
+      border-radius: 18px;
+      background: linear-gradient(135deg, rgba(29, 78, 216, 0.09), rgba(15, 118, 110, 0.09));
+      border: 1px solid rgba(29, 78, 216, 0.18);
+      margin: 18px 0;
+    }
+
+    .checklist {
+      display: grid;
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .checklist div {
+      padding: 12px 14px;
+      border-radius: 12px;
+      background: rgba(255, 255, 255, 0.72);
+      border: 1px solid rgba(183, 145, 94, 0.2);
+    }
+
+    .footer {
+      text-align: center;
+      color: var(--muted);
+      padding: 18px;
+      font-size: 0.95rem;
+    }
+
+    @media (max-width: 760px) {
+      .hero,
+      .section {
+        padding: 22px;
+      }
+
+      .step {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
 </head>
 <body>
+  <main class="page">
+    <section class="hero">
+      <span class="eyebrow">Hands-on Tutorial</span>
+      <h1>dbt + Iceberg + Semantic Layer を自分で組み立てる教材</h1>
+      <p class="lead">
+        この HTML は、このプロジェクトの実装をもとに、初学者が
+        <code>dbt</code>、<code>Apache Iceberg</code>、<code>semantic layer</code>、
+        <code>time spine</code>、<code>dbt test</code>、<code>dbt docs</code>
+        を理解しながらアーキテクチャを再現できるようにした学習用ガイドです。
+      </p>
+      <div class="quick-links">
+        <a href="#goal">ゴール</a>
+        <a href="#architecture">アーキテクチャ</a>
+        <a href="#steps">構築ステップ</a>
+        <a href="#run">実行方法</a>
+        <a href="#tree">最終構成</a>
+      </div>
+    </section>
 
-    <h1>モダンデータスタック学習教材：MinIO, Iceberg, Trino, dbt</h1>
+    <section class="section" id="goal">
+      <h2>この教材のゴール</h2>
+      <div class="cards">
+        <article class="card">
+          <strong>1. 何を作っているか分かる</strong>
+          <p>MinIO に保存された Iceberg テーブルを Trino から読み書きし、dbt で DWH と Mart を作る構成を理解します。</p>
+        </article>
+        <article class="card">
+          <strong>2. なぜその設定か分かる</strong>
+          <p><code>catalog</code>、<code>schema</code>、<code>warehouse</code>、<code>source</code>、<code>ref</code> などの意味を、実際の設定値に沿って学びます。</p>
+        </article>
+        <article class="card">
+          <strong>3. 自分で再現できる</strong>
+          <p>どのファイルを、どの順番で追加すればよいかを、コピペしやすいコード付きで追えるようにしています。</p>
+        </article>
+        <article class="card">
+          <strong>4. dbt の応用まで触れる</strong>
+          <p><code>tests</code>、<code>documentation</code>、<code>semantic layer</code>、<code>time spine</code> を一つの流れで理解します。</p>
+        </article>
+      </div>
+    </section>
 
-    <h2>はじめに</h2>
-    <p>この教材では、<strong>モダンデータスタック (MDS)</strong> の主要なコンポーネントである <strong>MinIO</strong>、<strong>Apache Iceberg</strong>、<strong>Trino</strong>、<strong>dbt</strong> を組み合わせ、データパイプラインを構築する手順をステップバイステップで学びます。すべての環境はDockerコンテナ内で構築されるため、ローカル環境を汚すことなく実践的な学習が可能です。</p>
+    <section class="section" id="architecture">
+      <h2>どんなアーキテクチャなのか</h2>
+      <p>
+        このプロジェクトは、<strong>データの保存場所</strong>、<strong>メタデータ管理</strong>、
+        <strong>SQL 実行エンジン</strong>、<strong>変換ロジック</strong> を分離したモダンデータスタックです。
+      </p>
+      <div class="diagram">
+        <article class="node python">
+          <h3>Python</h3>
+          <p>サンプルデータを生成し、Trino に SQL を投げて Iceberg テーブルを初期作成します。</p>
+        </article>
+        <article class="node trino">
+          <h3>Trino</h3>
+          <p>クエリエンジンです。dbt と Python は Trino に接続して SQL を実行します。</p>
+        </article>
+        <article class="node iceberg">
+          <h3>Iceberg REST Catalog</h3>
+          <p>テーブル定義やスナップショットなどのメタデータを管理します。</p>
+        </article>
+        <article class="node pg">
+          <h3>PostgreSQL</h3>
+          <p>Iceberg Catalog の JDBC バックエンドとしてメタデータ保存に使います。</p>
+        </article>
+        <article class="node minio">
+          <h3>MinIO</h3>
+          <p>Parquet ファイルや Iceberg のメタデータファイルの実体置き場です。</p>
+        </article>
+        <article class="node dbt">
+          <h3>dbt</h3>
+          <p><code>datalake</code> を source として読み、<code>dwh</code> と <code>mart</code> を構築します。</p>
+        </article>
+      </div>
+      <div class="flow">
+        データの流れ: Python が raw データを作る → Trino 経由で Iceberg テーブル化 →
+        dbt が source を参照して DWH/Mart を作る → test / docs / semantic layer で活用しやすくする
+      </div>
+      <div class="callout">
+        <strong>重要な整理</strong><br>
+        MinIO は「データの保存先」、Iceberg REST + PostgreSQL は「テーブル定義の管理」、Trino は「SQL の実行役」、dbt は「変換ロジックの管理役」です。
+      </div>
+      <div class="callout">
+        <strong>オープンテーブルフォーマット（Iceberg）の嬉しさ</strong><br>
+        Iceberg の強みは、データファイルの形式とメタデータの持ち方が標準化されていることです。だから Trino だけでなく、Spark のような別エンジンからも同じテーブルを扱えます。
+      </div>
+      <h3>共有カタログとは何か？</h3>
+      <p>カタログとは「どんなテーブルが存在して、そのデータがどこにあるか」を記録した台帳です。</p>
+      <p><code>iceberg-rest</code> がない場合、各エンジンが独自に台帳を持ちます。</p>
+<pre><code>Trino  → 自分だけのメタデータ管理 → "usersテーブルはs3://warehouse/datalake/users/v1/にある"
+Spark  → 自分だけのメタデータ管理 → (Trinoが作ったusersテーブルを知らない)
+dbt    → Trinoを経由するので見える</code></pre>
+      <p><code>iceberg-rest</code> があると、全エンジンが同じ台帳を参照します。</p>
+<pre><code>Trino  ─┐
+Spark  ─┼─→ iceberg-rest (共有カタログ) → MinIO上のデータ
+dbt    ─┘</code></pre>
+      <h3>何が嬉しいのか？</h3>
+      <ul>
+        <li>Trinoで <code>CREATE TABLE</code> したテーブルを、そのままSparkで <code>SELECT</code> できる</li>
+        <li>dbtがTrinoで変換したテーブルを、Sparkのバッチ処理でも使える</li>
+        <li>テーブルのスキーマ変更 (カラム追加など) が全エンジンに即時反映される</li>
+      </ul>
+      <h3>なぜ異なるエンジンでクエリ実行できるのか？</h3>
+      <p>ポイントは データフォーマット (Parquet) とメタデータ仕様 (Iceberg) が標準化されている からです。</p>
+<pre><code>Trino が CREATE TABLE → Parquetファイルを MinIO に保存
+                      → "このファイルがusersテーブル" と iceberg-rest に登録</code></pre>
+<pre><code>Spark が SELECT * FROM users
+  → iceberg-rest に「usersテーブルのデータはどこ？」と問い合わせ
+  → "s3://warehouse/datalake/users/..." と返ってくる
+  → Spark が直接 MinIO から Parquet を読む</code></pre>
+      <p>各エンジンは Parquetの読み方 と Iceberg REST APIの叩き方 さえ知っていれば、お互いのデータを読み書きできます。Icebergはその「共通言語」の役割を果たしています。</p>
+    </section>
 
-    <h3>本チュートリアルのアーキテクチャ</h3>
-    <p>このチュートリアルで構築するデータパイプラインの全体像は以下の通りです。</p>
+    <section class="section">
+      <h2>まず押さえる 5 つの用語</h2>
+      <div class="cards">
+        <article class="card">
+          <strong>Iceberg</strong>
+          <p>テーブルフォーマットです。Parquet の集まりを単なるファイル置き場ではなく、テーブルとして安全に扱えるようにします。</p>
+        </article>
+        <article class="card">
+          <strong>Catalog</strong>
+          <p>「どのテーブルがどこにあるか」を管理する仕組みです。このプロジェクトでは Trino の <code>iceberg</code> catalog を使います。</p>
+        </article>
+        <article class="card">
+          <strong>Schema</strong>
+          <p>テーブルのまとまりです。ここでは <code>datalake</code>、<code>dwh</code>、<code>mart</code> に役割分担しています。</p>
+        </article>
+        <article class="card">
+          <strong>Semantic Layer</strong>
+          <p>メトリクスやエンティティを共通定義する層です。分析者が毎回 SQL を手書きしなくてもよくなります。</p>
+        </article>
+        <article class="card">
+          <strong>Time Spine</strong>
+          <p>日付軸の基準表です。日別・月別などの時系列集計を安定して行うために使います。</p>
+        </article>
+      </div>
+    </section>
 
-    
-
-    <pre><code>
-  ┌─────────────────────────────────────────────────────────────────────────────────────────┐
-  │                                  Docker Compose 環境                                    │
-  │                                                                                         │
-  │  ┌─────────────┐    ┌──────────────────┐    ┌──────────┐    ┌────────────────────┐    │
-  │  │   MinIO     │    │  Iceberg REST    │    │  MariaDB │    │      Trino         │    │
-  │  │  (S3互換)   │◄───│    Catalog       │◄───┤ (JDBC)   │◄───│  (クエリエンジン)   │    │
-  │  │ Port: 9000  │    │ (メタデータ管理)  │    │          │    │   Port: 8080       │    │
-  │  │ Console:9001│    │  Port: 8181      │    └──────────┘    └────────────────────┘    │
-  │  └─────────────┘    └──────────────────┘                            ▲                │
-  │         ▲                                                           │                │
-  │         │                                        ┌──────────────────┴───────────────┐  │
-  │  s3://warehouse/ (Iceberg Tables)                │                                │  │
-  │         │                                        │  ┌───────────┐      ┌─────────┐  │  │
-  │         └────────────────────────────────────────┼──│    dbt    │◄───►│profiles.yml │  │
-  │                                                  │  └───────────┘      └─────────┘  │  │
-  │  ┌────────────────────┐                          │ (Data Transformation)            │  │
-  │  │    Python App      │                          └──────────────────────────────────┘  │
-  │  │ (Data Generation & │                                                               │
-  │  │      Ingestion)    ├───────────────────────────────────────────────────────────────►│
-  │  └────────────────────┘                                                               │
-  │                                                                                         │
-  └─────────────────────────────────────────────────────────────────────────────────────────┘
-    </code></pre>
-
-    <h3>ディレクトリ構成</h3>
-    <p>プロジェクト全体のディレクトリ構成は以下のようになります。</p>
-
-    <pre><code>
-modern-data-stack-tutorial/
-├── docker/
-│   ├── docker-compose.yml
-│   ├── Dockerfile.dbt
-│   └── Dockerfile.python
+    <section class="section" id="tree">
+      <h2>最終的なディレクトリ構成</h2>
+<pre><code>modern-data-stack/
+├── data/
+│   ├── orders.parquet
+│   ├── products.parquet
+│   └── users.csv
 ├── dbt/
 │   ├── dbt_project.yml
 │   ├── profiles.yml
-│   └── models/
-│       ├── datalake/
-│       │   └── sources.yml
-│       ├── dwh/
-│       │   ├── dim_products.sql
-│       │   ├── dim_users.sql
-│       │   ├── fct_orders.sql
-│       │   └── schema.yml
-│       └── mart/
-│           ├── daily_sales.sql
-│           └── semantic_layer.yml
+│   ├── macros/
+│   │   └── generate_schema_name.sql
+│   ├── models/
+│   │   ├── datalake/
+│   │   │   └── sources.yml
+│   │   ├── dwh/
+│   │   │   ├── _time_spine.sql
+│   │   │   ├── dim_products.sql
+│   │   │   ├── dim_users.sql
+│   │   │   ├── fct_orders.sql
+│   │   │   ├── schema.yml
+│   │   │   └── semantic_layer.yml
+│   │   └── mart/
+│   │       └── daily_sales.sql
+│   └── target/
+├── docker/
+│   ├── docker-compose.yaml
+│   ├── Dockerfile.dbt
+│   └── Dockerfile.python
 ├── scripts/
 │   ├── generate_data.py
 │   └── ingest_data.py
-└── trino/
-    └── catalog/
-        └── iceberg.properties
-    </code></pre>
+├── trino/
+│   └── catalog/
+│       └── iceberg.properties
+└── index.html</code></pre>
+      <p>
+        <code>target/</code> は dbt の実行後に生成される成果物です。初学者が手で作るべきなのは、それ以外の設定ファイルと SQL ファイルです。
+      </p>
+    </section>
 
-    <h3>ユースケースと学習のポイント</h3>
-    <p>このチュートリアルでは、ECサイトの「ユーザー」「商品」「注文」という3つのサンプルデータを生成し、それらを取り込み、最終的に「日次売上サマリー」を作成するという具体的なユースケースを通じて、以下のモダンデータスタック技術の要点を学びます。</p>
+    <section class="section" id="steps">
+      <h2>ステップバイステップで再現する</h2>
+      <p>以下は「このプロジェクトを自分でゼロから組み立てるならこの順番」という流れです。</p>
 
-    <ul>
-        <li><strong>オープンなデータレイクハウスの構築</strong>
-            <ul>
-                <li><strong>MinIO</strong> をS3互換のデータレイク基盤として利用します。</li>
-                <li><strong>Apache Iceberg</strong> をオープンテーブルフォーマットとして採用し、オブジェクトストレージ上のデータにテーブルとしての構造と信頼性（ACIDトランザクション、スキーマ進化など）をもたらす利点を理解します。</li>
-                <li><strong>Trino</strong> を分散SQLクエリエンジンとして使い、異なる場所に存在するデータソース（ここではIceberg）に対して統一的なSQLでアクセスできる「クエリフェデレーション」の概念を学びます。</li>
-            </ul>
-        </li>
-        <li><strong>ELT (Extract, Load, Transform) パイプラインの実践</strong>
-            <ul>
-                <li><code>Extract</code> &amp; <code>Load</code>: Pythonスクリプトで生成したCSV/Parquetデータを、Trino経由でデータレイク（Iceberg/MinIO）にそのままの形で取り込みます。</li>
-                <li><code>Transform</code>: <strong>dbt</strong> を使い、データレイクに取り込まれた生データを、SQLベースで段階的に加工（<code>datalake</code> -&gt; <code>dwh</code> -&gt; <code>mart</code>）していく現代的なデータ変換ワークフローを実践します。</li>
-            </ul>
-        </li>
-        <li><strong>dbtによる高度なデータ開発</strong>
-            <ul>
-                <li><strong>テスト</strong>: <code>schema.yml</code> にテストを定義し、データの品質（一意性、非NULLなど）を自動的に担保する手法を学びます。</li>
-                <li><strong>ドキュメント</strong>: dbtのコマンド一つで、データモデルの仕様や依存関係を可視化したドキュメントサイトを自動生成できることを体験します。</li>
-                <li><strong>Semantic Layer</strong>: <code>semantic_layer.yml</code> を定義することで、物理的なテーブル構造を意識することなく、ビジネスユーザーが理解しやすい指標（<code>metrics</code>）や次元（<code>dimensions</code>）を通じてデータにアクセスできるセマンティックレイヤーの強力な概念を学びます。</li>
-            </ul>
-        </li>
-    </ul>
+      <div class="step">
+        <div class="step-no">Step 1</div>
+        <div>
+          <h3>Docker Compose で全体構成を作る</h3>
+          <div class="meta">
+            <span class="tag">追加ファイル: <code>docker/docker-compose.yaml</code></span>
+            <span class="tag">目的: 基盤の起動</span>
+          </div>
+          <p>最初に、各コンポーネントがどう連携するかを <code>docker-compose.yaml</code> にまとめます。以下は今のプロジェクトで実際に使っている内容そのままです。</p>
+<pre><code>services:
+  postgres:
+    image: postgres:16
+    container_name: postgres
+    ports:
+      - 5432:5432
+    environment:
+      POSTGRES_USER: iceberg
+      POSTGRES_PASSWORD: iceberg
+      POSTGRES_DB: iceberg_catalog
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U iceberg -d iceberg_catalog"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
 
-    
-
-    <h3>前提条件</h3>
-    <ul>
-        <li>Docker Desktopがインストールされていること。</li>
-        <li>基本的なコマンドライン操作の知識。</li>
-    </ul>
-
-    <hr>
-
-    <h2>ステップ1: プロジェクトの準備</h2>
-    <p>まず、プロジェクトのディレクトリ構造を作成し、必要な設定ファイルを配置します。</p>
-
-    <h3>1.1. プロジェクトディレクトリの作成</h3>
-    <p>以下のコマンドを実行して、プロジェクトのルートディレクトリとサブディレクトリを作成します。</p>
-    <pre><code class="language-bash">mkdir -p modern-data-stack-tutorial
-cd modern-data-stack-tutorial
-mkdir -p docker trino/catalog dbt/models/datalake dbt/models/dwh dbt/models/mart scripts data</code></pre>
-
-    <h3>1.2. <code>docker-compose.yml</code> の作成</h3>
-    <p><code>docker-compose.yml</code> は、MinIO、MariaDB、Iceberg REST、Trino、Pythonアプリケーション、dbtの各サービスを定義し、連携させるための設定ファイルです。<code>modern-data-stack-tutorial/docker/docker-compose.yml</code> として以下の内容で作成してください。</p>
-    <pre><code class="language-yaml">version: '3.8'
-
-services:
   minio:
     image: minio/minio
     container_name: minio
     ports:
-      - "9000:9000"
-      - "9001:9001"
+      - 9000:9000 # MinIO の S3 API エンドポイント (アプリや Trino/Iceberg からオブジェクトを読み書きする)
+      - 9001:9001 # MinIO の管理コンソール UI (ブラウザでバケットやオブジェクトを操作する)
     environment:
       MINIO_ROOT_USER: admin
       MINIO_ROOT_PASSWORD: password
@@ -149,56 +571,54 @@ services:
       timeout: 20s
       retries: 3
 
+  # MinIO Client(mc) で初期化処理を行う一時コンテナ。
+  # MinIO 起動待ち -> warehouse バケット作成 -> ポリシー設定を実行して終了する。
   mc:
     image: minio/mc
     container_name: mc
     depends_on:
       minio:
         condition: service_healthy
-    entrypoint: >
+    # MinIO が起動して S3 API が利用可能になるまで待機してから、mc コマンドでバケット作成とポリシー設定を行う。
+    # 今回作成しているバケットは、warehouse という名前のバケット。
+    entrypoint: &gt;
       /bin/sh -c "
-      until (/usr/bin/mc config host add myminio http://minio:9000 admin password) do echo '...waiting for minio...' && sleep 1; done;
-      /usr/bin/mc mb myminio/warehouse;
-      /usr/bin/mc policy set public myminio/warehouse;
+      until (/usr/bin/mc alias set myminio http://minio:9000 admin password) do echo '...waiting for minio...' &amp;&amp; sleep 1; done;
+      /usr/bin/mc mb --ignore-existing myminio/warehouse;
+      /usr/bin/mc anonymous set public myminio/warehouse;
       exit 0;
       "
 
-  mariadb:
-    image: mariadb:10.11
-    container_name: mariadb
-    environment:
-      - MYSQL_ROOT_PASSWORD=password
-      - MYSQL_DATABASE=iceberg_catalog
-      - MYSQL_USER=iceberg
-      - MYSQL_PASSWORD=password
-    ports:
-      - "3306:3306"
-
   iceberg-rest:
-    image: tabulario/iceberg-rest
+    image: tabulario/iceberg-rest # Iceberg の REST Catalog サーバー。Trino/dbt はこの REST API 経由で Iceberg メタデータを操作する。
     container_name: iceberg-rest
     ports:
-      - "8181:8181"
-    environment:
-      - CATALOG_WAREHOUSE=s3a://warehouse/
-      - CATALOG_IO__IMPL=org.apache.iceberg.aws.s3.S3FileIO
-      - CATALOG_S3_ENDPOINT=http://minio:9000
-      - CATALOG_S3_ACCESS__KEY__ID=admin
-      - CATALOG_S3_SECRET__ACCESS__KEY=password
-      - CATALOG_S3_PATH__STYLE__ACCESS=true
-      - CATALOG_CATALOG__IMPL=org.apache.iceberg.jdbc.JdbcCatalog
-      - CATALOG_URI=jdbc:mysql://mariadb:3306/iceberg_catalog
-      - CATALOG_JDBC_USER=iceberg
-      - CATALOG_JDBC_PASSWORD=password
+      - 8181:8181
+    volumes:
+      - ../data/iceberg-rest:/tmp/iceberg-rest
+    environment: # Iceberg REST Catalog の保存先(S3)とメタデータ管理方式を定義
+      - CATALOG_WAREHOUSE=s3://warehouse/ # データファイル/メタデータのルートパス(warehouse バケット配下)
+      - CATALOG_IO__IMPL=org.apache.iceberg.aws.s3.S3FileIO # S3(AWS SDK)でファイル入出力する実装クラス
+      - AWS_REGION=us-east-1 # Iceberg REST 内部の AWS SDK が参照するリージョン
+      - CATALOG_S3_ENDPOINT=http://minio:9000 # S3 互換ストレージの接続先(MinIO)
+      - CATALOG_S3_ACCESS__KEY__ID=admin # MinIO アクセスキー
+      - CATALOG_S3_SECRET__ACCESS__KEY=password # MinIO シークレットキー
+      - CATALOG_S3_PATH__STYLE__ACCESS=true # MinIO 向けに path-style アクセスを有効化
+      - CATALOG_CATALOG__IMPL=org.apache.iceberg.jdbc.JdbcCatalog # メタデータを JDBC カタログで管理する実装
+      - CATALOG_URI=jdbc:postgresql://postgres:5432/iceberg_catalog # PostgreSQL カタログ DB
+      - CATALOG_JDBC_USER=iceberg # PostgreSQL ユーザー
+      - CATALOG_JDBC_PASSWORD=iceberg # PostgreSQL パスワード
     depends_on:
-      - minio
-      - mariadb
+      minio:
+        condition: service_healthy
+      postgres:
+        condition: service_healthy
 
   trino:
     image: trinodb/trino:443
     container_name: trino
     ports:
-      - "8080:8080"
+      - 8080:8080
     volumes:
       - ../trino/catalog:/etc/trino/catalog
     depends_on:
@@ -225,20 +645,90 @@ services:
       context: ../docker
       dockerfile: Dockerfile.dbt
     container_name: dbt
+    ports:
+      - 8081:8081
     volumes:
       - ../dbt:/usr/app/dbt
-    environment:
-      - DBT_TRINO_HOST=trino
-      - DBT_TRINO_PORT=8080
-      - DBT_TRINO_USER=admin
-      - DBT_TRINO_CATALOG=iceberg
-      - DBT_TRINO_SCHEMA=mart
+    environment: # dbt-trino 接続先設定
+      - DBT_TRINO_HOST=trino # Trino サーバーのホスト名(Compose サービス名)
+      - DBT_TRINO_PORT=8080 # Trino の HTTP ポート
+      - DBT_TRINO_USER=admin # Trino に接続するユーザー名
+      - DBT_TRINO_CATALOG=iceberg # 利用する Trino カタログ名
+      - DBT_TRINO_SCHEMA=mart # dbt が作成/参照するデフォルトスキーマ
     depends_on:
       - trino</code></pre>
+          <div class="notes">
+            <div class="note why"><strong>なぜこの設定か</strong><br>Iceberg は単体では完結しません。保存先のオブジェクトストレージ、メタデータ管理、SQL 実行エンジンが必要なので、Compose で一式をまとめます。</div>
+            <div class="note meaning"><strong>設定値の意味</strong><br><code>POSTGRES_DB=iceberg_catalog</code> は Iceberg Catalog 用 DB 名、<code>CATALOG_WAREHOUSE=s3://warehouse/</code> は MinIO 上の保存ルートです。</div>
+          </div>
+        </div>
+      </div>
 
-    <h3>1.3. <code>Dockerfile.python</code> の作成</h3>
-    <p>Pythonアプリケーション用のDockerイメージを定義します。<code>modern-data-stack-tutorial/docker/Dockerfile.python</code> として以下の内容で作成してください。</p>
-    <pre><code class="language-dockerfile">FROM python:3.11-slim
+      <div class="step">
+        <div class="step-no">Step 2</div>
+        <div>
+          <h3>Trino から Iceberg を見えるようにする</h3>
+          <div class="meta">
+            <span class="tag">追加ファイル: <code>trino/catalog/iceberg.properties</code></span>
+            <span class="tag">目的: Trino と Iceberg の接続</span>
+          </div>
+          <p><code>trino/catalog/iceberg.properties</code></p>
+<pre><code># TrinoがIcebergテーブルに接続するための設定ファイル
+# 使用するTrinoコネクタ種別。Icebergテーブルを扱うため `iceberg` を指定。
+connector.name=iceberg
+
+# Icebergカタログの実装方式。REST Catalogサーバーを使うため `rest` を指定。
+iceberg.catalog.type=rest
+
+# Iceberg REST Catalogの接続先URL。
+iceberg.rest-catalog.uri=http://iceberg-rest:8181
+
+# Icebergのデータ/メタデータを保存するルート(warehouse)。
+iceberg.rest-catalog.warehouse=s3://warehouse/
+
+# Trino の native S3 filesystem を有効化。
+fs.native-s3.enabled=true
+
+# S3互換ストレージのエンドポイント。ここではMinIOを指定。
+s3.endpoint=http://minio:9000
+
+# S3リージョン。MinIO 利用時も値が必要なため固定値を指定。
+s3.region=us-east-1
+
+# MinIOへ接続するアクセスキー。
+s3.aws-access-key=admin
+
+# MinIOへ接続するシークレットキー。
+s3.aws-secret-key=password
+
+# MinIO互換のため path-style アクセスを有効化。
+s3.path-style-access=true</code></pre>
+          <div class="notes">
+            <div class="note why"><strong>なぜこの設定か</strong><br>dbt は直接 Iceberg REST に接続するのではなく、Trino に接続します。だから Trino 側に「Iceberg をどう扱うか」を教える必要があります。</div>
+            <div class="note meaning"><strong>設定値の意味</strong><br><code>connector.name=iceberg</code> は Iceberg コネクタ利用、<code>iceberg.catalog.type=rest</code> は REST Catalog 採用、<code>s3.path-style-access=true</code> は MinIO 互換設定です。</div>
+          </div>
+          <div class="callout">
+            <strong>データのインジェスチョン周りの理解</strong><br>
+            1. <code>python-app</code> が Trino に SQL (<code>CREATE SCHEMA</code>, <code>CREATE TABLE</code>, <code>INSERT</code>) を送信<br>
+            2. Trino は <code>iceberg.properties</code> の設定に基づき、メタデータ操作 (テーブル定義・スキーマ情報) を <code>iceberg-rest:8181</code> に委譲<br>
+            3. 実際のデータファイル (Parquet) の読み書きは Trino が直接 MinIO に行う (<code>s3.endpoint=http://minio:9000</code>)<br>
+            4. <code>iceberg-rest</code> は MinIO 上のどこにデータを置くかを指示するだけで、データ転送自体は Trino ↔ MinIO 間で完結
+          </div>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-no">Step 3</div>
+        <div>
+          <h3>Python コンテナと dbt コンテナを用意する</h3>
+          <div class="meta">
+            <span class="tag">追加ファイル: <code>docker/Dockerfile.python</code></span>
+            <span class="tag">追加ファイル: <code>docker/Dockerfile.dbt</code></span>
+          </div>
+          <p>異なるファイルは別々に保存してください。以下は今のプロジェクトの実内容そのままです。</p>
+          <p><code>docker/Dockerfile.python</code></p>
+<pre><code># python用のDockerfile
+FROM python:3.11-slim
 
 WORKDIR /app
 
@@ -253,10 +743,9 @@ RUN pip install --no-cache-dir \
     trino
 
 CMD ["tail", "-f", "/dev/null"]</code></pre>
-
-    <h3>1.4. <code>Dockerfile.dbt</code> の作成</h3>
-    <p>dbt用のDockerイメージを定義します。<code>modern-data-stack-tutorial/docker/Dockerfile.dbt</code> として以下の内容で作成してください。</p>
-    <pre><code class="language-dockerfile">FROM python:3.11-slim
+          <p><code>docker/Dockerfile.dbt</code></p>
+<pre><code># dbt用のDockerfile
+FROM python:3.11-slim
 
 WORKDIR /usr/app/dbt
 
@@ -269,90 +758,116 @@ RUN pip install --no-cache-dir \
     dbt-metricflow[trino]
 
 CMD ["tail", "-f", "/dev/null"]</code></pre>
+          <div class="notes">
+            <div class="note why"><strong>なぜこの設定か</strong><br>Python 側はデータ生成と取り込みを担当し、dbt 側はモデル実行・test・docs・semantic layer を担当します。責務を分けると学習しやすくなります。</div>
+            <div class="note meaning"><strong>設定値の意味</strong><br><code>dbt-trino</code> は Trino アダプタ、<code>dbt-metricflow[trino]</code> は semantic layer / metrics 利用のためのパッケージです。</div>
+          </div>
+        </div>
+      </div>
 
-    <h3>1.5. Trino Iceberg Catalog の設定</h3>
-    <p>TrinoがIcebergテーブルに接続するための設定ファイルです。<code>modern-data-stack-tutorial/trino/catalog/iceberg.properties</code> として以下の内容で作成してください。</p>
-    <pre><code class="language-properties">connector.name=iceberg
-iceberg.catalog.type=rest
-iceberg.rest-catalog.uri=http://iceberg-rest:8181
-iceberg.rest-catalog.warehouse=s3a://warehouse/
-iceberg.rest-catalog.s3.endpoint=http://minio:9000
-iceberg.rest-catalog.s3.access-key=admin
-iceberg.rest-catalog.s3.secret-key=password
-iceberg.rest-catalog.s3.path-style-access=true</code></pre>
-
-    <hr>
-
-    <h2>ステップ2: サンプルデータの生成と取り込み</h2>
-
-    <h3>2.1. サンプルデータ生成スクリプトの作成</h3>
-    <p>Pythonでダミーデータを生成するスクリプトです。<code>modern-data-stack-tutorial/scripts/generate_data.py</code> として以下の内容で作成してください。</p>
-    <pre><code class="language-python">import pandas as pd
-import numpy as np
+      <div class="step">
+        <div class="step-no">Step 4</div>
+        <div>
+          <h3>サンプルデータを作る</h3>
+          <div class="meta">
+            <span class="tag">追加ファイル: <code>scripts/generate_data.py</code></span>
+            <span class="tag">目的: raw データ作成</span>
+          </div>
+          <p><code>scripts/generate_data.py</code></p>
+<pre><code># ダミーデータを生成するスクリプト
 import os
 
+import numpy as np
+import pandas as pd
+
 # ディレクトリ作成
-os.makedirs('/app/data', exist_ok=True)
+os.makedirs("/app/data", exist_ok=True)
 
 # 1. ユーザーデータ (CSV)
-users = pd.DataFrame({
-    'user_id': range(1, 101),
-    'name': [f'User_{i}' for i in range(1, 101)],
-    'email': [f'user_{i}@example.com' for i in range(1, 101)],
-    'signup_date': pd.to_datetime(pd.date_range(start='2023-01-01', periods=100))
-})
-users.to_csv('/app/data/users.csv', index=False)
+users = pd.DataFrame(
+    {
+        "user_id": range(1, 101),
+        "name": [f"User_{i}" for i in range(1, 101)],
+        "email": [f"user_{i}@example.com" for i in range(1, 101)],
+        "signup_date": pd.to_datetime(pd.date_range(start="2023-01-01", periods=100)),
+    }
+)
+users.to_csv("/app/data/users.csv", index=False)
 
 # 2. 商品データ (Parquet)
-products = pd.DataFrame({
-    'product_id': range(1, 21),
-    'product_name': [f'Product_{i}' for i in range(1, 21)],
-    'category': np.random.choice(['Electronics', 'Clothing', 'Home', 'Books'], 20),
-    'price': np.random.uniform(10, 500, 20).round(2)
-})
-products.to_parquet('/app/data/products.parquet', index=False)
+products = pd.DataFrame(
+    {
+        "product_id": range(1, 21),
+        "product_name": [f"Product_{i}" for i in range(1, 21)],
+        "category": np.random.choice(["Electronics", "Clothing", "Home", "Books"], 20),
+        "price": np.random.uniform(10, 500, 20).round(2),
+    }
+)
+products.to_parquet("/app/data/products.parquet", index=False)
 
 # 3. 注文データ (Parquet)
-orders = pd.DataFrame({
-    'order_id': range(1001, 1101),
-    'user_id': np.random.randint(1, 101, 100),
-    'product_id': np.random.randint(1, 21, 100),
-    'order_date': pd.to_datetime(pd.date_range(start='2023-06-01', periods=100)),
-    'quantity': np.random.randint(1, 5, 100)
-})
-orders.to_parquet('/app/data/orders.parquet', index=False)
+orders = pd.DataFrame(
+    {
+        "order_id": range(1001, 1101),
+        "user_id": np.random.randint(1, 101, 100),
+        "product_id": np.random.randint(1, 21, 100),
+        "order_date": pd.to_datetime(pd.date_range(start="2023-06-01", periods=100)),
+        "quantity": np.random.randint(1, 5, 100),
+    }
+)
+orders.to_parquet("/app/data/orders.parquet", index=False)</code></pre>
+          <p>
+            このプロジェクトでは <code>users</code> は CSV、<code>products</code> と <code>orders</code> は Parquet で作っています。
+            複数形式を混ぜることで、取り込み処理の違いを学べます。
+          </p>
+          <div class="notes">
+            <div class="note why"><strong>なぜこの設定か</strong><br>最初から本番データを使わず、再生成できるダミーデータを用意すると学習と検証が何度でもできます。</div>
+            <div class="note meaning"><strong>設定値の意味</strong><br><code>/app/data</code> はホストの <code>./data</code> をマウントした場所です。コンテナで作ったファイルをホストでも確認できます。</div>
+          </div>
+        </div>
+      </div>
 
-print("Sample data generated successfully.")</code></pre>
-
-    <h3>2.2. データ取り込みスクリプトの作成</h3>
-    <p>生成したデータをIcebergテーブルとして取り込むスクリプトです。<code>modern-data-stack-tutorial/scripts/ingest_data.py</code> として以下の内容で作成してください。</p>
-    <pre><code class="language-python">import pandas as pd
-from trino.dbapi import connect
+      <div class="step">
+        <div class="step-no">Step 5</div>
+        <div>
+          <h3>raw データを Iceberg テーブルとして取り込む</h3>
+          <div class="meta">
+            <span class="tag">追加ファイル: <code>scripts/ingest_data.py</code></span>
+            <span class="tag">目的: datalake 層の初期化</span>
+          </div>
+          <p><code>scripts/ingest_data.py</code></p>
+<pre><code># /app/scripts/generate_data.pyで生成したデータを
+# Icebergテーブルとして取り込むスクリプト
 import time
 
-# Trino 設定
+import pandas as pd
+from trino.dbapi import connect
+
+# Trino設定
 MAX_RETRIES = 30
-RETRY_DELAY = 5
+RETRY_DELAY = 10  # seconds
 
 conn = None
 for i in range(MAX_RETRIES):
     try:
         conn = connect(
-            host='trino',
+            host="trino",
             port=8080,
-            user='admin',
-            catalog='iceberg'
+            user="admin",
+            catalog="iceberg",
         )
-        print("Successfully connected to Trino.")
+        print("Successfully connected to Trino")
         break
     except Exception as e:
-        print(f"Attempt {i+1}/{MAX_RETRIES}: Could not connect to Trino. Retrying in {RETRY_DELAY} seconds... Error: {e}")
+        print(f"Failed to connect to Trino: {e}")
         time.sleep(RETRY_DELAY)
 
 if not conn:
     raise Exception("Failed to connect to Trino after multiple retries.")
 
+
 cur = conn.cursor()
+
 
 def create_schema():
     print("Creating schemas if not exists...")
@@ -361,167 +876,485 @@ def create_schema():
     cur.execute("CREATE SCHEMA IF NOT EXISTS iceberg.mart")
     print("Schemas created.")
 
+
 def ingest_csv(file_path, table_name):
     print(f"Ingesting CSV: {file_path} into iceberg.datalake.{table_name}")
-    df = pd.read_csv(file_path, parse_dates=['signup_date'])
-    
+    df = pd.read_csv(file_path, parse_dates=["signup_date"])
+
     cols = [
         "user_id BIGINT",
         "name VARCHAR",
         "email VARCHAR",
-        "signup_date TIMESTAMP(6)"
+        "signup_date TIMESTAMP(6)",
     ]
-    
+
     cur.execute(f"DROP TABLE IF EXISTS iceberg.datalake.{table_name}")
-    cur.execute(f"CREATE TABLE iceberg.datalake.{table_name} ({', '.join(cols)}) WITH (format = 'PARQUET')")
-    
+    cur.execute(
+        f"CREATE TABLE iceberg.datalake.{table_name} ({', '.join(cols)}) WITH (format = 'PARQUET')"
+    )
+
     for _, row in df.iterrows():
-        cur.execute(f"INSERT INTO iceberg.datalake.{table_name} VALUES ({row['user_id']}, '{row['name']}', '{row['email']}', TIMESTAMP '{row['signup_date']}')")
+        cur.execute(
+            f"INSERT INTO iceberg.datalake.{table_name} VALUES ({row['user_id']}, '{row['name']}', '{row['email']}', TIMESTAMP '{row['signup_date']}')"
+        )
     print(f"Table iceberg.datalake.{table_name} ingested successfully.")
+
 
 def ingest_parquet(file_path, table_name, date_cols=[]):
     print(f"Ingesting Parquet: {file_path} into iceberg.datalake.{table_name}")
     df = pd.read_parquet(file_path)
-    
-    if table_name == 'products':
+
+    if table_name == "products":
         cols = [
             "product_id BIGINT",
             "product_name VARCHAR",
             "category VARCHAR",
-            "price DOUBLE"
+            "price DOUBLE",
         ]
-    elif table_name == 'orders':
+    elif table_name == "orders":
         cols = [
             "order_id BIGINT",
             "user_id BIGINT",
             "product_id BIGINT",
             "order_date TIMESTAMP(6)",
-            "quantity BIGINT"
+            "quantity BIGINT",
         ]
-    
+
     cur.execute(f"DROP TABLE IF EXISTS iceberg.datalake.{table_name}")
-    cur.execute(f"CREATE TABLE iceberg.datalake.{table_name} ({', '.join(cols)}) WITH (format = 'PARQUET')")
-    
+    cur.execute(
+        f"CREATE TABLE iceberg.datalake.{table_name} ({', '.join(cols)}) WITH (format = 'PARQUET')"
+    )
+
     for _, row in df.iterrows():
-        if table_name == 'products':
-            cur.execute(f"INSERT INTO iceberg.datalake.products VALUES ({row['product_id']}, '{row['product_name']}', '{row['category']}', {row['price']})")
-        elif table_name == 'orders':
-            cur.execute(f"INSERT INTO iceberg.datalake.orders VALUES ({row['order_id']}, {row['user_id']}, {row['product_id']}, TIMESTAMP '{row['order_date']}', {row['quantity']})")
+        if table_name == "products":
+            cur.execute(
+                f"INSERT INTO iceberg.datalake.products VALUES ({row['product_id']}, '{row['product_name']}', '{row['category']}', {row['price']})"
+            )
+        elif table_name == "orders":
+            cur.execute(
+                f"INSERT INTO iceberg.datalake.orders VALUES ({row['order_id']}, {row['user_id']}, {row['product_id']}, TIMESTAMP '{row['order_date']}', {row['quantity']})"
+            )
     print(f"Table iceberg.datalake.{table_name} ingested successfully.")
+
 
 if __name__ == "__main__":
     create_schema()
-    ingest_csv('/app/data/users.csv', 'users')
-    ingest_parquet('/app/data/products.parquet', 'products')
-    ingest_parquet('/app/data/orders.parquet', 'orders')
+    ingest_csv("/app/data/users.csv", "users")
+    ingest_parquet("/app/data/products.parquet", "products")
+    ingest_parquet("/app/data/orders.parquet", "orders")
     print("All data ingested successfully.")
     cur.close()
     conn.close()</code></pre>
+          <div class="notes">
+            <div class="note why"><strong>なぜこの設定か</strong><br>dbt は変換担当であり、raw データの初回ロード担当にしない設計もよくあります。この教材では Python が ingestion を担当します。</div>
+            <div class="note meaning"><strong>設定値の意味</strong><br><code>iceberg.datalake.users</code> は「catalog.schema.table」です。<code>WITH (format = 'PARQUET')</code> は Iceberg テーブルのデータファイル形式です。</div>
+          </div>
+          <div class="callout">
+            <strong>層の役割</strong><br>
+            <code>datalake</code> は取り込んだ元データ、<code>dwh</code> は整形済みの分析基盤、<code>mart</code> は用途別集計です。
+          </div>
+          <h3><code>iceberg.datalake.{table_name}</code> の命名</h3>
+          <ul>
+            <li><strong>Trinoの階層は カタログ.スキーマ.テーブル の3層構造</strong></li>
+            <li>MinIOのwarehouseバケット配下のトップディレクトリは、"スキーマ"が使われる</li>
+            <li>テーブルはそのディレクトリ配下の"テーブル"（これもMinIOではディレクトリ）として使われる。そしてその配下のディレクトリの中には、データ実態や各種メタデータが保存されている。</li>
+          </ul>
+<pre><code>| 部分 | Trino上の概念 | 実体 |
+| :--- | :--- | :--- |
+| **カタログ** | iceberg | `trino/catalog/iceberg.properties` のファイル名 |
+| **スキーマ** | datalake | MinIO の `warehouse/datalake/` フォルダ |
+| **テーブル** | {table_name} | `warehouse/datalake/{table_name}/` フォルダ配下のParquetファイル群 |</code></pre>
+        </div>
+      </div>
 
-    <hr>
-
-    <h2>ステップ3: Docker環境の起動とデータ取り込み実行</h2>
-
-    <h3>3.1. Docker Composeの起動</h3>
-    <pre><code class="language-bash">docker-compose -f docker/docker-compose.yml up -d</code></pre>
-
-    <h3>3.2. データ生成と取り込みの実行</h3>
-    <pre><code class="language-bash"># データ生成
-docker exec python-app python /app/scripts/generate_data.py
-
-# データ取り込み
-docker exec python-app python /app/scripts/ingest_data.py</code></pre>
-
-    <h3>3.3. Trinoでのデータ確認</h3>
-    <pre><code class="language-bash">docker exec -it trino trino</code></pre>
-    <pre><code class="language-sql">SHOW SCHEMAS IN iceberg;
-SHOW TABLES IN iceberg.datalake;
-SELECT * FROM iceberg.datalake.users LIMIT 5;
-exit;</code></pre>
-
-    <hr>
-
-    <h2>ステップ4: dbtプロジェクトの設定と実行</h2>
-
-    <h3>4.1. dbtプロジェクトの初期化</h3>
-    <pre><code class="language-bash">docker exec -it dbt bash
-# dbtコンテナ内
-cd /usr/app/dbt
-dbt init mds_tutorial --skip-profile-setup
-mv mds_tutorial/* .
-rm -rf mds_tutorial
-exit</code></pre>
-
-    <h3>4.2. <code>dbt_project.yml</code> の設定</h3>
-    <p><code>modern-data-stack-tutorial/dbt/dbt_project.yml</code> を更新します。</p>
-    <pre><code class="language-yaml">name: 'mds_tutorial'
+      <div class="step">
+        <div class="step-no">Step 6</div>
+        <div>
+          <h3>dbt プロジェクトの土台を作る</h3>
+          <div class="meta">
+            <span class="tag">追加ファイル: <code>dbt/dbt_project.yml</code></span>
+            <span class="tag">目的: dbt の全体設定</span>
+          </div>
+<pre><code>name: 'mds_tutorial_by_ken' # プロジェクト名です。ログ表示、成果物メタ情報、モデル設定の名前空間に使われる
 version: '1.0.0'
 config-version: 2
-profile: 'mds_tutorial'
-model-paths: ["models"]
+
+profile: 'mds_tutorial_by_ken' # dbt プロフィール名。profiles.yml 内の接続設定を参照する際のキーに対応。 ここで指定した名前の接続設定を dbt が使う
+
+model-paths: ['models']
+analysis-paths: ['analyses']
+test-paths: ['tests']
+seed-paths: ['seeds']
+macro-paths: ['macros']
+snapshot-paths: ['snapshots']
+target-path: 'target' # dbt 実行結果（コンパイル成果物、manifest など）の出力先ディレクトリ
+
+clean-targets: # dbt clean 実行時に削除するディレクトリ一覧
+  - 'target'
+  - 'dbt_modules'
+
+# モデルに対するデフォルト設定
 models:
-  mds_tutorial:
-    +materialized: table
+  mds_tutorial_by_ken: # この配下設定が適用されるプロジェクト名（名前空間）. nameと同じ名前にしておく.
+    +materialized: table # デフォルトでモデルを table として作成する設定。dbt はモデルを view として作成するのがデフォルトなので、ここで table に変更している。
     datalake:
-      +schema: datalake
+      +schema: datalake # models/datalake 配下モデルのスキーマを datalake にします
     dwh:
-      +schema: dwh
+      +schema: dwh # models/dwh 配下モデルのスキーマを dwh にします
     mart:
-      +schema: mart</code></pre>
+      +schema: mart # models/mart 配下モデルのスキーマを mart にします</code></pre>
+          <div class="notes">
+            <div class="note why"><strong>なぜこの設定か</strong><br>ディレクトリ名とスキーマ名を対応させると、学習時に「このモデルはどこにできるのか」が追いやすくなります。</div>
+            <div class="note meaning"><strong>設定値の意味</strong><br><code>+materialized: table</code> はモデルを table で作る指定、<code>profile</code> は接続情報の参照先、<code>+schema</code> は出力先スキーマです。</div>
+          </div>
+        </div>
+      </div>
 
-    <h3>4.3. <code>profiles.yml</code> の作成</h3>
-    <pre><code class="language-yaml">mds_tutorial:
-  target: dev
+      <div class="step">
+        <div class="step-no">Step 7</div>
+        <div>
+          <h3>dbt から Trino に接続する</h3>
+          <div class="meta">
+            <span class="tag">追加ファイル: <code>dbt/profiles.yml</code></span>
+            <span class="tag">目的: 接続定義</span>
+          </div>
+<pre><code>mds_tutorial_by_ken: # プロフィール名。dbt_project.yml の profile キーで指定した名前と同じにしておく必要がある
+  target: dev # デフォルトのターゲットを dev に設定。profiles.yml 内の dev ターゲットの接続設定が使われる
+  config:
+    send_anonymous_usage_stats: false # 匿名の使用統計情報の送信を無効化
   outputs:
-    dev:
-      type: trino
-      host: trino
-      port: 8080
-      user: admin
-      catalog: iceberg
-      schema: mart
-      threads: 1</code></pre>
+    dev: # ターゲット名。ここでは dev という名前のターゲットを定義している。
+      type: trino # データベースの種類。ここでは Trino を指定している。
+      host: trino # データベースホスト。Trino のホスト名を指定している。Dockerのネットワーク設定により、Compose サービス名である trino をホスト名として指定できる。
+      port: 8080 # データベースポート。Trino のデフォルトポートを指定している。
+      user: admin # データベースユーザー名。admin を指定している。
+      catalog: iceberg # Trino カタログ名。iceberg を指定している。前提として、Trino の catalog ディレクトリに iceberg.properties というファイルを作成し、Iceberg REST Catalog サーバーへの接続設定を記述している前提。
+      schema: mart # データベーススキーマ。mart を指定している。
+      threads: 1
+      # password: password # データベースパスワード。password を指定している。
+      # dbname: mds_tutorial_by_ken_dev # データベース名。mds_tutorial_by_ken_dev を指定している。
+      # schema: public # スキーマ名。public を指定している。</code></pre>
+          <div class="notes">
+            <div class="note why"><strong>なぜこの設定か</strong><br>dbt は Trino に接続し、その先で Iceberg テーブルを操作します。Trino を共通入口にすることで SQL 実行先が一貫します。</div>
+            <div class="note meaning"><strong>設定値の意味</strong><br><code>type: trino</code> はアダプタ、<code>catalog: iceberg</code> は Trino 上の Iceberg catalog、<code>schema: mart</code> はデフォルト schema です。</div>
+          </div>
+        </div>
+      </div>
 
-    <h3>4.4. ソースの定義 (<code>sources.yml</code>)</h3>
-    <p><code>modern-data-stack-tutorial/dbt/models/datalake/sources.yml</code> を作成します。</p>
-    <pre><code class="language-yaml">version: 2
+      <div class="step">
+        <div class="step-no">Step 8</div>
+        <div>
+          <h3>schema 名をきれいに制御する</h3>
+          <div class="meta">
+            <span class="tag">追加ファイル: <code>dbt/macros/generate_schema_name.sql</code></span>
+            <span class="tag">目的: dbt のデフォルト schema 命名を上書き</span>
+          </div>
+<pre><code>{% macro generate_schema_name(custom_schema_name, node) -%}
+    {%- if custom_schema_name is none -%}
+        {{ target.schema }}
+    {%- else -%}
+        {{ custom_schema_name | trim }}
+    {%- endif -%}
+{%- endmacro %}</code></pre>
+          <div class="notes">
+            <div class="note why"><strong>なぜこの設定か</strong><br>dbt の標準動作では <code>schema</code> 名に target 名などが結合されることがあります。教材では <code>dwh</code> や <code>mart</code> をそのまま使った方が理解しやすいので上書きします。</div>
+            <div class="note meaning"><strong>設定値の意味</strong><br><code>custom_schema_name</code> があるときはそれをそのまま返すため、<code>+schema: dwh</code> なら出力先が素直に <code>iceberg.dwh</code> になります。</div>
+          </div>
+          <h3>dbtでマクロを使う理由</h3>
+          <p>dbtは <code>dbt_project.yml</code> で <code>+schema: dwh</code> のようにモデルごとのスキーマを指定できます。 しかしデフォルトの挙動では、指定したスキーマ名はそのまま使われず、<code>profiles.yml</code> の <code>schema</code>（<code>outputs.dev.schema</code>）と連結されてしまいます。今の設定だと、<code>outputs.dev.schema=mart</code>なので、dwhのスキーマは、<code>mart_dwh</code>となってしまいます.</p>
+          <h3>デフォルト挙動の例</h3>
+<pre><code>| profiles.yml の schema | dbt_project.yml の +schema | 実際に作られるスキーマ |
+| :--- | :--- | :--- |
+| `mart` | `dwh` | `mart_dwh` |
+| `mart` | `mart` | `mart_mart` |
+| `mart` | 指定なし | `mart` |</code></pre>
+          <h3>なぜこのデフォルト挙動になっているのか</h3>
+          <p>複数の開発者が同じ Trino/BigQuery 上で同時開発するとき、名前が衝突しないようにするためです。</p>
+<pre><code>Alice (target.schema=alice) → alice_dwh, alice_mart
+Bob   (target.schema=bob)   → bob_dwh,  bob_mart
+本番  (target.schema=prod)  → prod_dwh, prod_mart</code></pre>
+          <p>この設計により、開発者ごとに独立したスキーマが自動的に用意されます。</p>
+          <h3>マクロが必要になる場面</h3>
+          <p>チュートリアルや本番環境のように「スキーマ名をそのまま使いたい」場合は、 dbt 組み込みの <code>generate_schema_name</code> マクロを <code>macros/</code> 配下で上書きする必要があります。</p>
+          <h3>まとめ</h3>
+          <ul>
+            <li>dbt に <code>+schema</code> の設定だけ書いても連結されてしまうのは<strong>仕様</strong></li>
+            <li>「<code>+schema</code> に書いた名前をそのまま使いたい」= <code>generate_schema_name</code> マクロの上書きが<strong>セット</strong></li>
+            <li>この2つがワンセットになっているのが dbt でのスキーマ管理の標準パターン</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="step">
+        <div class="step-no">Step 9</div>
+        <div>
+          <h3>source を定義して raw テーブルを参照する</h3>
+          <div class="meta">
+            <span class="tag">追加ファイル: <code>dbt/models/datalake/sources.yml</code></span>
+            <span class="tag">目的: raw データの入口を固定化</span>
+          </div>
+<pre><code>version: 2
 sources:
+  # Trinoの階層は カタログ.スキーマ.テーブル となっており、今回は、iceberg.{MinIOのフォルダ名}.{テーブル}だから以下のような設定値になる
   - name: raw_data
-    database: iceberg
-    schema: datalake
+    database: iceberg # Trino カタログ名
+    schema: datalake # Trino スキーマ名
     tables:
       - name: users
       - name: products
       - name: orders</code></pre>
+          <p>モデルからは <code>{{ source('raw_data', 'users') }}</code> のように参照します。</p>
+          <div class="notes">
+            <div class="note why"><strong>なぜこの設定か</strong><br>raw テーブルを直接文字列で書くより、source 定義を 1 か所に集めた方が保守しやすく、dbt docs にも反映されます。</div>
+            <div class="note meaning"><strong>設定値の意味</strong><br><code>database: iceberg</code> は Trino catalog、<code>schema: datalake</code> は raw 層です。</div>
+          </div>
+        </div>
+      </div>
 
-    <h3>4.5. DWH層のモデル作成</h3>
-    <p><code>dbt/models/dwh/fct_orders.sql</code> などのSQLファイルを作成します。</p>
+      <div class="step">
+        <div class="step-no">Step 10</div>
+        <div>
+          <h3>DWH モデルを作る</h3>
+          <div class="meta">
+            <span class="tag">追加ファイル: <code>dbt/models/dwh/dim_users.sql</code></span>
+            <span class="tag">追加ファイル: <code>dbt/models/dwh/dim_products.sql</code></span>
+            <span class="tag">追加ファイル: <code>dbt/models/dwh/fct_orders.sql</code></span>
+          </div>
+          <p>3 つの SQL ファイルは別々です。別ファイルとして保存してください。</p>
+          <p><code>dbt/models/dwh/dim_users.sql</code></p>
+<pre><code>SELECT 
+    user_id
+    , name
+    , email
+    , signup_date
+FROM 
+    {{ source('raw_data', 'users') }}</code></pre>
+          <p><code>dbt/models/dwh/dim_products.sql</code></p>
+<pre><code>SELECT 
+    product_id
+    , product_name
+    , category
+    , price 
+FROM 
+    {{ source('raw_data', 'products') }}</code></pre>
+          <p><code>dbt/models/dwh/fct_orders.sql</code></p>
+<pre><code>SELECT 
+    o.order_id
+    , o.user_id
+    , o.product_id
+    , o.order_date
+    , o.quantity
+    , (o.quantity * p.price) AS total_price
+FROM {{ source('raw_data', 'orders') }} as o
+LEFT JOIN {{ ref('dim_products') }} as p
+    ON o.product_id = p.product_id</code></pre>
+          <div class="notes">
+            <div class="note why"><strong>なぜこの設定か</strong><br><code>dim</code> は属性を持つ次元表、<code>fct</code> は数値計算の中心になるファクト表です。分析しやすい形に raw データを変換します。</div>
+            <div class="note meaning"><strong>設定値の意味</strong><br><code>source()</code> は外部テーブル参照、<code>ref()</code> は dbt モデル間参照です。<code>ref()</code> を使うと依存関係が dbt に伝わります。</div>
+          </div>
+        </div>
+      </div>
 
-    <h3>4.6. Mart層のモデル作成</h3>
-    <p><code>dbt/models/mart/daily_sales.sql</code> を作成します。</p>
+      <div class="step">
+        <div class="step-no">Step 11</div>
+        <div>
+          <h3>dbt test と time spine を追加する</h3>
+          <div class="meta">
+            <span class="tag">追加ファイル: <code>dbt/models/dwh/schema.yml</code></span>
+            <span class="tag">追加ファイル: <code>dbt/models/dwh/_time_spine.sql</code></span>
+          </div>
+          <p><code>dbt/models/dwh/schema.yml</code></p>
+<pre><code>version: 2
 
-    <h3>4.7. dbtの実行</h3>
-    <pre><code class="language-bash">docker exec -it dbt dbt run --project-dir /usr/app/dbt</code></pre>
+models:
+  - name: dim_users
+    columns:
+      - name: user_id
+        tests: [unique, not_null]
+  - name: dim_products
+    columns:
+      - name: product_id
+        tests: [unique, not_null]
+  - name: fct_orders
+    columns:
+      - name: order_id
+        tests: [unique, not_null]
+      - name: user_id
+        tests: [not_null]
+      - name: product_id
+        tests: [not_null]
+  - name: _time_spine
+    columns:
+      - name: date_day
+        data_type: date
+        granularity: day
+    time_spine:
+      standard_granularity_column: date_day</code></pre>
+          <p><code>dbt/models/dwh/_time_spine.sql</code></p>
+<pre><code>{{
+  config(
+    materialized='table'
+  )
+}}
 
-    <hr>
+SELECT
+  sales_date AS date_day
+  , EXTRACT(YEAR FROM sales_date) AS year
+  , EXTRACT(QUARTER FROM sales_date) AS quarter
+  , EXTRACT(MONTH FROM sales_date) AS month
+  , EXTRACT(DAY FROM sales_date) AS day_of_month
+  , EXTRACT(DOW FROM sales_date) AS day_of_week
+FROM {{ ref('daily_sales') }}
+ORDER BY sales_date</code></pre>
+          <div class="notes">
+            <div class="note why"><strong>なぜこの設定か</strong><br>dbt test は「この列は null であってはいけない」「主キーは重複してはいけない」を機械的に検証します。time spine は時系列分析の基準軸として semantic layer でも重要です。</div>
+            <div class="note meaning"><strong>設定値の意味</strong><br><code>tests: [unique, not_null]</code> は組み込みテスト、<code>granularity: day</code> は日粒度、<code>standard_granularity_column</code> は基準日付列を示します。</div>
+          </div>
+        </div>
+      </div>
 
-    <h2>ステップ5: dbtのテスト、ドキュメント、Semantic Layer</h2>
+      <div class="step">
+        <div class="step-no">Step 12</div>
+        <div>
+          <h3>Semantic Layer と Mart を追加する</h3>
+          <div class="meta">
+            <span class="tag">追加ファイル: <code>dbt/models/dwh/semantic_layer.yml</code></span>
+            <span class="tag">追加ファイル: <code>dbt/models/mart/daily_sales.sql</code></span>
+          </div>
+          <p>Mart の SQL と semantic layer の YAML も別ファイルです。</p>
+          <p><code>dbt/models/mart/daily_sales.sql</code></p>
+<pre><code>SELECT 
+    CAST(order_date AS DATE) AS sales_date
+    , SUM(total_price) AS total_daily_sales
+FROM {{ ref('fct_orders') }}
+GROUP BY 1
+ORDER BY 1</code></pre>
+          <p><code>dbt/models/dwh/semantic_layer.yml</code></p>
+<pre><code># ===================================
+# このsemantic_layerの定義は、
+# SQLで書くと以下のクエリと同等の意味を持つ。
+# -----------------------------------
+# select
+#   order_date,
+#   sum(total_price) as total_sales
+# from fct_orders
+# group by order_date
+# ===================================
 
-    <h3>5.1. テストの追加 (<code>schema.yml</code>)</h3>
-    <p><code>user_id</code> の一意性制約などを定義します。</p>
+version: 2
 
-    <h3>5.2. テストの実行</h3>
-    <pre><code class="language-bash">docker exec dbt dbt test --project-dir /usr/app/dbt</code></pre>
+semantic_models:
+  - name: fct_orders
+    model: ref('fct_orders')
+    entities:
+      - name: order_id
+        type: primary
+      - name: user_id
+        type: foreign
+      - name: product_id
+        type: foreign
+    dimensions:
+      - name: order_date
+        type: time
+        type_params: {time_granularity: day}
+    measures:
+      - name: total_sales
+        agg: sum
+        expr: total_price
+        agg_time_dimension: order_date
 
-    <h3>5.3. ドキュメントの生成と閲覧</h3>
-    <pre><code class="language-bash">docker exec dbt dbt docs generate --project-dir /usr/app/dbt
-docker exec -d dbt dbt docs serve --project-dir /usr/app/dbt --port 8081</code></pre>
-    <p>ブラウザで <code>http://localhost:8081</code> にアクセスして確認してください。</p>
+metrics:
+  - name: total_sales
+    label: Total Sales
+    type: simple
+    type_params:
+      measure: total_sales</code></pre>
+          <div class="notes">
+            <div class="note why"><strong>なぜこの設定か</strong><br>Mart は用途別の集計表、semantic layer は「売上」という意味を共通定義する層です。同じ数字を別の人が別の SQL で計算してズレるのを防ぎます。</div>
+            <div class="note meaning"><strong>設定値の意味</strong><br><code>entities</code> は主語、<code>dimensions</code> は切り口、<code>measures</code> は集計元、<code>metrics</code> は利用者向けの完成形です。</div>
+          </div>
+        </div>
+      </div>
+    </section>
 
-    <hr>
+    <section class="section" id="run">
+      <h2>実行方法</h2>
+      <p>教材を読みながら手を動かすなら、以下の順番で実行すると全体像がつながります。</p>
+<pre><code># 1. 基盤を起動
+docker compose -f docker/docker-compose.yaml up -d
 
-    <h2>まとめ</h2>
-    <p>お疲れ様でした。このチュートリアルでは、Dockerを使用してモダンデータスタックの主要コンポーネントを連携させ、データパイプラインを構築する一連の流れを体験しました。特に、Icebergによるオープンデータレイクハウスの利便性や、dbtによるSQLベースの効率的なデータ開発の強力さを実感できたかと思います。この教材が、あなたの今後のデータエンジニアリング学習の一助となれば幸いです。</p>
+# 2. サンプルデータを生成
+docker compose -f docker/docker-compose.yaml exec python-app python /app/scripts/generate_data.py
 
+# 3. datalake 層に取り込み
+docker compose -f docker/docker-compose.yaml exec python-app python /app/scripts/ingest_data.py
+
+# 4. dbt で変換
+docker compose -f docker/docker-compose.yaml exec dbt dbt run --project-dir /usr/app/dbt --profiles-dir /usr/app/dbt
+
+# 5. dbt test
+docker compose -f docker/docker-compose.yaml exec dbt dbt test --project-dir /usr/app/dbt --profiles-dir /usr/app/dbt
+
+# 6. dbt docs
+docker compose -f docker/docker-compose.yaml exec dbt dbt docs generate --project-dir /usr/app/dbt --profiles-dir /usr/app/dbt
+docker compose -f docker/docker-compose.yaml exec dbt dbt docs serve --project-dir /usr/app/dbt --profiles-dir /usr/app/dbt --port 8081</code></pre>
+      <div class="checklist">
+        <div><strong>確認 1</strong> MinIO の <code>warehouse</code> バケットにファイルが増えること。</div>
+        <div><strong>確認 2</strong> Trino 経由で <code>iceberg.datalake</code>、<code>iceberg.dwh</code>、<code>iceberg.mart</code> が見えること。</div>
+        <div><strong>確認 3</strong> <code>dbt test</code> が通ること。</div>
+        <div><strong>確認 4</strong> <code>dbt docs</code> に source, model, test の依存関係が表示されること。</div>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>dbt test と documentation 機能をどう理解すればよいか</h2>
+      <div class="grid two">
+        <article class="card">
+          <strong>dbt test</strong>
+          <p>SQL が動くだけでは品質保証になりません。<code>unique</code> と <code>not_null</code> を入れると、主キーの重複や欠損をすぐ検知できます。</p>
+          <p>この教材では、<code>dim_users.user_id</code>、<code>dim_products.product_id</code>、<code>fct_orders.order_id</code> を主キー候補として検証しています。</p>
+        </article>
+        <article class="card">
+          <strong>dbt docs</strong>
+          <p>source、model、test、semantic 定義のつながりを視覚化できます。初学者にとっては、SQL を読むより先に依存関係を俯瞰できるのが大きな利点です。</p>
+          <p>source から dim/fact に流れ、そこから mart や time spine に接続される構造を確認してください。</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>この構成で学べる設計の考え方</h2>
+      <div class="cards">
+        <article class="card">
+          <strong>レイヤ分離</strong>
+          <p>raw をそのまま分析せず、<code>datalake → dwh → mart</code> と段階を分けることで責務が明確になります。</p>
+        </article>
+        <article class="card">
+          <strong>ストレージと計算の分離</strong>
+          <p>MinIO に保存し、Trino が計算し、dbt が変換を管理します。役割を分けるのがモダンデータスタックの基本です。</p>
+        </article>
+        <article class="card">
+          <strong>意味の共通化</strong>
+          <p>semantic layer により「total_sales は total_price の合計」という定義を再利用できます。</p>
+        </article>
+        <article class="card">
+          <strong>時間軸の標準化</strong>
+          <p>time spine を置くと、時系列分析の粒度や欠損日の扱いを統一しやすくなります。</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="section">
+      <h2>最後に見るべきポイント</h2>
+      <div class="checklist">
+        <div><strong>source と ref の違い</strong> raw テーブルは <code>source()</code>、dbt モデル同士は <code>ref()</code>。</div>
+        <div><strong>catalog / schema / table の3階層</strong> このプロジェクトでは <code>iceberg.dwh.fct_orders</code> のように読む。</div>
+        <div><strong>Iceberg の本体</strong> テーブルの実体は MinIO にあり、Trino や dbt はそこに直接住んでいるわけではない。</div>
+        <div><strong>semantic layer の価値</strong> 売上定義を SQL から切り出し、再利用できるようにすること。</div>
+      </div>
+    </section>
+
+    <p class="footer">教材はこのプロジェクトの現状実装に合わせて構成しています。まずは Step 1 から Step 12 まで順に追うのが最短です。</p>
+  </main>
 </body>
 </html>
